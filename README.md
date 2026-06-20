@@ -1,2 +1,44 @@
 # OneClickML
-OneClickML web service that analyzes any uploaded dataset, auto-detects classification vs regression,handle missing values,train models, find the most predicitive feature ,train models ,and get predicitons with feature-importance insights
+
+Загружаешь CSV, выбираешь целевую колонку, получаешь самый предсказательный
+признак, его score и график связи с таргетом. Тип задачи (регрессия или
+классификация) определяется автоматически.
+
+## Архитектура
+
+```
+core.py    ML-ядро: чистые функции, главная analyze(df, target) -> dict
+app.py     FastAPI: эндпоинт /api/analyze + раздача фронтенда
+static/    фронтенд (HTML/CSS/JS), робот-видео и графики Chart.js
+```
+
+ML-логика отделена от веб-слоя: `core.py` ничего не знает про HTTP, его можно
+переиспользовать и тестировать отдельно.
+
+## Запуск локально
+
+```bash
+pip install -r requirements.txt
+uvicorn app:app --reload
+```
+
+Открой http://127.0.0.1:8000
+
+## Как пользоваться
+
+1. Перетащи CSV в окно загрузки.
+2. Выбери целевую колонку.
+3. Нажми «Анализировать».
+
+Робот отворачивается, пока считается результат, и поворачивается обратно с
+лучшим признаком и графиком.
+
+## Эндпоинт
+
+`POST /api/analyze` (multipart): `file` = CSV, `target` = имя колонки.
+Возвращает JSON: `task`, `best_feature`, `best_score`, `feature_scores`, `chart`.
+
+## Замена видео робота
+
+Положи свой `.mp4` в `static/assets/robot.mp4`. Первый кадр клипа должен быть
+позой «отвёрнут», последний - «смотрит на зрителя» (фронтенд так и проигрывает).
