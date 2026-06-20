@@ -19,10 +19,27 @@ app = FastAPI(title="OneClickML")
 
 
 def _read_csv(raw: bytes) -> pd.DataFrame:
-    try:
-        return pd.read_csv(io.BytesIO(raw))
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Не удалось прочитать CSV: {exc}")
+    """Читаем CSV устойчиво: пробуем разные кодировки, авто-определяем
+    разделитель (запятая, точка с запятой, табуляция), снимаем BOM."""
+    if not raw.strip():
+        raise HTTPException(status_code=400, detail="Файл пустой")
+
+    last_error = None
+    for encoding in ("utf-8-sig", "cp1251", "latin-1"):
+        try:
+            # sep=None + engine="python" -> pandas сам определяет разделитель
+            df = pd.read_csv(io.BytesIO(raw), sep=None, engine="python", encoding=encoding)
+            if df.shape[1] == 0:
+                raise ValueError("в файле не найдено колонок")
+            # убираем мусорный авто-индекс, если он попал первой колонкой
+            df.columns = [str(c).strip() for c in df.columns]
+            return df
+        except UnicodeDecodeError as exc:
+            last_error = exc
+            continue
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Не удалось прочитать CSV: {exc}")
+    raise HTTPException(status_code=400, detail=f"Не удалось определить кодировку файла: {last_error}")
 
 
 @app.post("/api/analyze")

@@ -26,8 +26,14 @@ function handleFile(file) {
   dropText.textContent = `[ ${file.name} ]`;
   const reader = new FileReader();
   reader.onload = () => {
-    const header = reader.result.split(/\r?\n/)[0];
-    const cols = header.split(",").map(c => c.trim()).filter(Boolean);
+    // снимаем BOM и определяем разделитель по первой строке
+    const header = reader.result.split(/\r?\n/)[0].replace(/^﻿/, "");
+    const delims = [",", ";", "\t", "|"];
+    const delim = delims.reduce((best, d) =>
+      header.split(d).length > header.split(best).length ? d : best, ",");
+    const cols = header.split(delim)
+      .map(c => c.trim().replace(/^"|"$/g, ""))
+      .filter(Boolean);
     targetSelect.innerHTML = cols
       .map((c, i) => `<option ${i === cols.length - 1 ? "selected" : ""}>${c}</option>`)
       .join("");

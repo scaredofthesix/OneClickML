@@ -139,14 +139,17 @@ select:disabled { color: var(--muted); }
 }
 .card__thumb .score {
   position: absolute;
-  top: 12px; left: 12px;
+  top: 16px; left: 12px;
+  z-index: 2;
   font-family: "Space Mono", monospace;
   font-size: 22px;
   font-weight: 700;
+  color: #fff;
+  /* инверсия по фону: видно и на тёмном столбике, и на светлом */
+  mix-blend-mode: difference;
 }
 .card--best .card__thumb { background: var(--ink); }
 .card--best .card__thumb > i { background: #fff; }
-.card--best .card__thumb .score { color: #fff; }
 
 .card__meta { display: flex; flex-direction: column; gap: 2px; }
 .card__title { font-weight: 700; font-size: 14px; font-style: italic; }
