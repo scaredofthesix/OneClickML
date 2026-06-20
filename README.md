@@ -1,6 +1,7 @@
 # OneClickML
 
-<img width="2555" height="1298" alt="image" src="https://github.com/user-attachments/assets/9085aed7-bf18-42a2-9e2f-3df92323e4fd" />
+<img width="2542" height="1296" alt="image" src="https://github.com/user-attachments/assets/e6aebf0d-43d4-41d2-b77b-c2111b80efb0" />
+
 
 Загружаешь CSV, выбираешь целевую колонку, получаешь самый предсказательный
 признак, его score и график связи с таргетом. Тип задачи (регрессия или
