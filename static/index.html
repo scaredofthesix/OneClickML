@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OneClickML</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <main class="layout">
+    <!-- ЛЕВО: ввод и результаты -->
+    <section class="panel">
+      <header class="brand">
+        <span class="dot"></span>
+        <h1>OneClickML</h1>
+        <p class="tagline">Загрузи таблицу. Узнай, что предсказывает результат.</p>
+      </header>
+
+      <div class="controls">
+        <label class="drop" id="drop">
+          <input type="file" id="file" accept=".csv" hidden />
+          <span class="drop__icon">＋</span>
+          <span class="drop__text" id="dropText">Перетащи CSV или нажми</span>
+        </label>
+
+        <div class="field" id="targetField" hidden>
+          <label for="target">Целевая колонка</label>
+          <select id="target"></select>
+        </div>
+
+        <button id="run" class="run" disabled>Анализировать</button>
+        <p class="status" id="status"></p>
+      </div>
+
+      <!-- Результаты -->
+      <div class="results" id="results" hidden>
+        <div class="metric">
+          <div class="metric__box">
+            <span class="metric__label">Лучший признак</span>
+            <span class="metric__value" id="bestFeature">—</span>
+          </div>
+          <div class="metric__box">
+            <span class="metric__label" id="scoreMetric">Score</span>
+            <span class="metric__value" id="bestScore">—</span>
+          </div>
+        </div>
+
+        <div class="chart-wrap">
+          <canvas id="chart"></canvas>
+        </div>
+
+        <div class="scores">
+          <h3>Сила признаков</h3>
+          <ul id="scoreList"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ПРАВО: робот -->
+    <section class="stage">
+      <div class="stage__glow"></div>
+      <video id="robot" class="robot" muted playsinline preload="auto"
+             poster="/static/assets/robot_poster.jpg">
+        <source src="/static/assets/robot.mp4" type="video/mp4" />
+      </video>
+      <div class="stage__caption" id="robotCaption">Готов к анализу</div>
+    </section>
+  </main>
+</body>
+</html>
