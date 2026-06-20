@@ -18,7 +18,6 @@
       <p class="intro">Automatic feature analysis tool.<br />Upload a dataset, find what predicts the outcome.</p>
       <nav class="nav">
         <span class="active">&bull; Analyze</span>
-        <a href="#about">About</a>
       </nav>
       <a class="contact" href="https://github.com/scaredofthesix/OneClickML" target="_blank">GitHub</a>
     </header>
@@ -45,20 +44,35 @@
 
     <!-- результаты -->
     <main class="results" id="results" hidden>
+      <!-- лучший признак — первым -->
+      <section class="best">
+        <span class="best__label">BEST PREDICTIVE FEATURE</span>
+        <span class="best__name" id="bestFeature">—</span>
+        <span class="best__score" id="bestScore">—</span>
+      </section>
+
+      <!-- график + карточки признаков -->
       <div class="grid">
-        <!-- большая карточка: график лучшего признака -->
         <article class="card card--wide">
           <div class="card__chart"><canvas id="chart"></canvas></div>
           <div class="card__meta">
-            <span class="card__title" id="bestFeature">—</span>
-            <span class="card__cat" id="bestCat">BEST FEATURE</span>
+            <span class="card__title" id="chartTitle">—</span>
+            <span class="card__cat">RELATIONSHIP</span>
           </div>
         </article>
         <!-- карточки признаков добавляются скриптом -->
       </div>
+
+      <!-- предсказание нового значения -->
+      <section class="predict">
+        <div class="predict__head">PREDICT NEW VALUE</div>
+        <div class="predict__inputs" id="predictInputs"></div>
+        <button id="predictBtn" class="run">PREDICT</button>
+        <div class="predict__out" id="predictOut"></div>
+      </section>
     </main>
 
-    <footer class="foot" id="about">
+    <footer class="foot">
       <span>OneClickML</span>
       <span id="footInfo">Regression &amp; classification, auto-detected</span>
     </footer>

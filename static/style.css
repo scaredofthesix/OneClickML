@@ -15,7 +15,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.wrap { max-width: 1280px; margin: 0 auto; padding: 28px 36px 60px; }
+.wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 36px 40px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
 .mono-label, .nav, .contact, .card__cat, .upload, .foot, .bar {
   font-family: "Space Mono", monospace;
@@ -132,14 +139,17 @@ select:disabled { color: var(--muted); }
 }
 .card__thumb .score {
   position: absolute;
-  top: 12px; left: 12px;
+  top: 16px; left: 12px;
+  z-index: 2;
   font-family: "Space Mono", monospace;
   font-size: 22px;
   font-weight: 700;
+  color: #fff;
+  /* инверсия по фону: видно и на тёмном столбике, и на светлом */
+  mix-blend-mode: difference;
 }
 .card--best .card__thumb { background: var(--ink); }
 .card--best .card__thumb > i { background: #fff; }
-.card--best .card__thumb .score { color: #fff; }
 
 .card__meta { display: flex; flex-direction: column; gap: 2px; }
 .card__title { font-weight: 700; font-size: 14px; font-style: italic; }
@@ -150,11 +160,83 @@ select:disabled { color: var(--muted); }
   letter-spacing: .5px;
 }
 
+/* ---------- лучший признак (первым) ---------- */
+.best {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  padding-bottom: 32px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--ink);
+}
+.best__label {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.best__name {
+  font-weight: 900;
+  font-size: clamp(36px, 6vw, 72px);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.best__score {
+  font-family: "Space Mono", monospace;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+/* ---------- предсказание ---------- */
+.predict {
+  margin-top: 56px;
+  padding-top: 24px;
+  border-top: 1px solid var(--ink);
+}
+.predict__head {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  margin-bottom: 18px;
+}
+.predict__inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.predict__field { display: flex; flex-direction: column; gap: 5px; }
+.predict__field label {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: .5px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.predict__field input,
+.predict__field select {
+  font-family: "Space Mono", monospace;
+  font-size: 13px;
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  background: var(--bg);
+  color: var(--ink);
+}
+.predict__out {
+  margin-top: 18px;
+  font-family: "Space Mono", monospace;
+  font-size: 14px;
+  min-height: 20px;
+}
+.predict__out b { font-size: 22px; }
+
 /* ---------- подвал ---------- */
 .foot {
   display: flex;
   justify-content: space-between;
-  margin-top: 60px;
+  margin-top: auto;
   padding-top: 16px;
   border-top: 1px solid var(--line);
   font-size: 11px;
