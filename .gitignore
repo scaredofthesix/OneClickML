@@ -219,3 +219,10 @@ __marimo__/
 # AutoML user uploads & saved models
 uploads/
 *.joblib
+
+# Local tooling and editor
+.claude/
+.idea/
+
+# Source reference image (kept locally, not in repo)
+8ca72e3c0cbb8580ddc010e18eec6712.jpg
