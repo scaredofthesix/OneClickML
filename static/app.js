@@ -8,8 +8,12 @@ const statusEl = document.getElementById("status");
 const results = document.getElementById("results");
 const grid = document.querySelector(".grid");
 const footInfo = document.getElementById("footInfo");
+const predictInputs = document.getElementById("predictInputs");
+const predictBtn = document.getElementById("predictBtn");
+const predictOut = document.getElementById("predictOut");
 
 let selectedFile = null;
+let currentTarget = null;
 let chart = null;
 
 // --- выбор файла ---
@@ -36,7 +40,7 @@ function handleFile(file) {
 // --- анализ ---
 runBtn.addEventListener("click", async () => {
   if (!selectedFile) return;
-  setBusy(true);
+  setBusy(runBtn, true, "RUN");
 
   const form = new FormData();
   form.append("file", selectedFile);
@@ -51,37 +55,41 @@ runBtn.addEventListener("click", async () => {
     statusEl.textContent = err.message;
     statusEl.classList.add("error");
   } finally {
-    setBusy(false);
+    setBusy(runBtn, false, "RUN");
   }
 });
 
-function setBusy(busy) {
-  runBtn.disabled = busy;
-  runBtn.textContent = busy ? "..." : "RUN";
+function setBusy(btn, busy, label) {
+  btn.disabled = busy;
+  btn.textContent = busy ? "..." : label;
   if (busy) { statusEl.textContent = ""; statusEl.classList.remove("error"); }
 }
 
-// --- отрисовка ---
+// --- отрисовка результата ---
 function renderResults(data) {
   results.hidden = false;
+  currentTarget = data.target;
+
   document.getElementById("bestFeature").textContent = data.best_feature;
-  document.getElementById("bestCat").textContent =
-    `BEST FEATURE / ${data.score_metric} ${data.best_score}`;
+  document.getElementById("bestScore").textContent = `${data.score_metric} ${data.best_score}`;
+  document.getElementById("chartTitle").textContent = `${data.chart.x_label} → ${data.target}`;
   footInfo.textContent = `${data.task.toUpperCase()} / target: ${data.target}`;
 
   renderChart(data.chart);
   renderCards(data.feature_scores, data.best_feature, data.score_metric);
+  buildPredictForm(data.features);
+  predictOut.textContent = "";
 }
 
 function renderCards(scores, best, metric) {
-  // убираем старые карточки (всё, кроме первой широкой с графиком)
   grid.querySelectorAll(".card--feature").forEach(el => el.remove());
 
   const entries = Object.entries(scores);
-  const max = Math.max(...entries.map(([, v]) => Math.abs(v)), 1e-9);
+  // столбик по реальной силе: лучший = 100%, бесполезные (<=0) = почти пусто
+  const maxPos = Math.max(...entries.map(([, v]) => v), 1e-9);
 
   for (const [name, val] of entries) {
-    const pct = Math.max(2, (Math.abs(val) / max) * 100);
+    const pct = val > 0 ? Math.max(4, (val / maxPos) * 100) : 4;
     const isBest = name === best;
     const card = document.createElement("article");
     card.className = "card card--feature" + (isBest ? " card--best" : "");
@@ -98,6 +106,44 @@ function renderCards(scores, best, metric) {
   }
 }
 
+// --- форма предсказания ---
+function buildPredictForm(features) {
+  predictInputs.innerHTML = features.map(f => {
+    const input = f.type === "number"
+      ? `<input data-name="${f.name}" type="number" step="any" placeholder="0" />`
+      : `<select data-name="${f.name}">${f.options.map(o => `<option>${o}</option>`).join("")}</select>`;
+    return `<div class="predict__field"><label>${f.name}</label>${input}</div>`;
+  }).join("");
+}
+
+predictBtn.addEventListener("click", async () => {
+  if (!selectedFile || !currentTarget) return;
+  const values = {};
+  predictInputs.querySelectorAll("[data-name]").forEach(el => {
+    values[el.dataset.name] = el.value;
+  });
+
+  setBusy(predictBtn, true, "PREDICT");
+  predictOut.textContent = "";
+
+  const form = new FormData();
+  form.append("file", selectedFile);
+  form.append("target", currentTarget);
+  form.append("values", JSON.stringify(values));
+
+  try {
+    const res = await fetch("/api/predict", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Prediction error");
+    predictOut.innerHTML = `Predicted ${data.target}: <b>${data.prediction}</b>`;
+  } catch (err) {
+    predictOut.textContent = err.message;
+  } finally {
+    setBusy(predictBtn, false, "PREDICT");
+  }
+});
+
+// --- график ---
 function renderChart(c) {
   if (chart) chart.destroy();
   const ctx = document.getElementById("chart");

@@ -129,7 +129,50 @@ def analyze(df: pd.DataFrame, target: str) -> dict:
         "score_metric": "R2" if task == "regression" else "F1 (weighted)",
         "feature_scores": dict(sorted(feature_scores.items(), key=lambda kv: kv[1], reverse=True)),
         "chart": _chart_data(df, best_feature, target, task),
+        "features": feature_spec(x),
     }
+
+
+def feature_spec(x: pd.DataFrame) -> list[dict]:
+    """Описание признаков для формы ввода предсказания:
+    числовой -> поле числа, категориальный -> выпадающий список значений."""
+    spec = []
+    for col in x.columns:
+        if pd.api.types.is_numeric_dtype(x[col]):
+            spec.append({"name": col, "type": "number"})
+        else:
+            options = sorted(x[col].dropna().astype(str).unique().tolist())
+            spec.append({"name": col, "type": "category", "options": options})
+    return spec
+
+
+def train_model(df: pd.DataFrame, target: str):
+    """Обучаем модель на ВСЕХ признаках (для предсказания новых значений).
+    Возвращает обученный пайплайн, тип задачи и список колонок-признаков."""
+    x = df.drop(columns=[target])
+    y = df[target]
+    task = detect_task(y)
+    numerical, categorical = split_features(x)
+    prep = build_preprocessor(numerical, categorical)
+    model = LinearRegression() if task == "regression" else LogisticRegression(max_iter=1000)
+    pipe = Pipeline([("prep", prep), ("model", model)])
+    pipe.fit(x, y)
+    return pipe, task, x.columns.tolist()
+
+
+def predict_value(df: pd.DataFrame, target: str, values: dict) -> dict:
+    """Обучает модель и предсказывает таргет по введённым значениям признаков."""
+    pipe, task, columns = train_model(df, target)
+    row = {}
+    for col in columns:
+        raw = values.get(col)
+        if pd.api.types.is_numeric_dtype(df[col]):
+            row[col] = float(raw) if raw not in (None, "") else None
+        else:
+            row[col] = raw
+    pred = pipe.predict(pd.DataFrame([row], columns=columns))[0]
+    prediction = round(float(pred), 4) if task == "regression" else str(pred)
+    return {"task": task, "target": target, "prediction": prediction}
 
 
 if __name__ == "__main__":
