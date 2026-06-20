@@ -20,6 +20,32 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 # Числовой таргет с бОльшим числом уникальных значений считаем регрессией.
 REGRESSION_UNIQUE_THRESHOLD = 20
 CV_FOLDS = 5
+# Категориальный признак с бОльшим числом уникальных значений считаем мусором
+# (ID, имена, время) - в one-hot он раздулся бы на тысячи колонок.
+MAX_CATEGORY_UNIQUE = 50
+
+
+def prepare(df: pd.DataFrame) -> pd.DataFrame:
+    """Приводим типы к пригодным для sklearn: bool -> 0/1."""
+    df = df.copy()
+    for col in df.columns:
+        if df[col].dtype == bool:
+            df[col] = df[col].astype(int)
+    return df
+
+
+def usable_features(x: pd.DataFrame) -> pd.DataFrame:
+    """Оставляем только пригодные признаки: убираем константы и
+    категориальные столбцы-идентификаторы с огромным числом значений."""
+    keep = []
+    for col in x.columns:
+        nunique = x[col].nunique(dropna=True)
+        if nunique <= 1:
+            continue  # константа - бесполезна
+        if not pd.api.types.is_numeric_dtype(x[col]) and nunique > MAX_CATEGORY_UNIQUE:
+            continue  # ID / текст / время - раздуло бы one-hot
+        keep.append(col)
+    return x[keep]
 
 
 def detect_task(y: pd.Series) -> str:
@@ -112,10 +138,11 @@ def analyze(df: pd.DataFrame, target: str) -> dict:
     if target not in df.columns:
         raise ValueError(f"Колонка-таргет {target!r} не найдена в таблице")
 
-    x = df.drop(columns=[target])
+    df = prepare(df)
     y = df[target]
+    x = usable_features(df.drop(columns=[target]))
     if x.shape[1] == 0:
-        raise ValueError("В таблице нет признаков, кроме таргета")
+        raise ValueError("В таблице нет пригодных признаков для анализа")
 
     task = detect_task(y)
     numerical, categorical = split_features(x)
@@ -149,8 +176,9 @@ def feature_spec(x: pd.DataFrame) -> list[dict]:
 def train_model(df: pd.DataFrame, target: str):
     """Обучаем модель на ВСЕХ признаках (для предсказания новых значений).
     Возвращает обученный пайплайн, тип задачи и список колонок-признаков."""
-    x = df.drop(columns=[target])
+    df = prepare(df)
     y = df[target]
+    x = usable_features(df.drop(columns=[target]))
     task = detect_task(y)
     numerical, categorical = split_features(x)
     prep = build_preprocessor(numerical, categorical)
@@ -162,6 +190,7 @@ def train_model(df: pd.DataFrame, target: str):
 
 def predict_value(df: pd.DataFrame, target: str, values: dict) -> dict:
     """Обучает модель и предсказывает таргет по введённым значениям признаков."""
+    df = prepare(df)
     pipe, task, columns = train_model(df, target)
     row = {}
     for col in columns:
