@@ -28,7 +28,7 @@ body {
   font-family: "Space Mono", monospace;
 }
 
-/* ---------- верхняя строка ---------- */
+/* Шапка: логотип, описание, навигация, ссылка на GitHub */
 .top {
   display: grid;
   grid-template-columns: 1fr 1.4fr 1fr auto;
@@ -52,7 +52,7 @@ body {
 }
 .contact:hover { background: var(--ink); color: var(--bg); }
 
-/* ---------- гигантский заголовок ---------- */
+/* Крупный заголовок PREDICT */
 .hero {
   font-weight: 900;
   font-size: clamp(80px, 17vw, 240px);
@@ -61,7 +61,7 @@ body {
   margin: 28px 0 60px;
 }
 
-/* ---------- строка управления ---------- */
+/* Панель управления: загрузка файла, выбор таргета, кнопка RUN */
 .bar {
   display: flex;
   justify-content: space-between;
@@ -104,7 +104,7 @@ select:disabled { color: var(--muted); }
 
 .rule { border: none; border-top: 1px solid var(--ink); margin: 16px 0 40px; }
 
-/* ---------- грид результатов ---------- */
+/* Сетка результатов: широкая карточка с графиком плюс карточки признаков */
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -145,7 +145,7 @@ select:disabled { color: var(--muted); }
   font-size: 22px;
   font-weight: 700;
   color: #fff;
-  /* инверсия по фону: видно и на тёмном столбике, и на светлом */
+  /* инверсия цвета по фону, чтобы число читалось и на тёмном столбике, и на светлом */
   mix-blend-mode: difference;
 }
 .card--best .card__thumb { background: var(--ink); }
@@ -160,7 +160,7 @@ select:disabled { color: var(--muted); }
   letter-spacing: .5px;
 }
 
-/* ---------- лучший признак (первым) ---------- */
+/* Блок с лучшим признаком, идёт первым в результатах */
 .best {
   display: flex;
   align-items: baseline;
@@ -189,7 +189,7 @@ select:disabled { color: var(--muted); }
   color: var(--ink);
 }
 
-/* ---------- предсказание ---------- */
+/* Блок предсказания нового значения */
 .predict {
   margin-top: 56px;
   padding-top: 24px;
@@ -232,7 +232,7 @@ select:disabled { color: var(--muted); }
 }
 .predict__out b { font-size: 22px; }
 
-/* ---------- подвал ---------- */
+/* Подвал */
 .foot {
   display: flex;
   justify-content: space-between;
@@ -243,7 +243,7 @@ select:disabled { color: var(--muted); }
   color: var(--muted);
 }
 
-/* ---------- адаптив ---------- */
+/* Адаптив: на планшете два столбца, на телефоне один */
 @media (max-width: 900px) {
   .top { grid-template-columns: 1fr 1fr; }
   .grid { grid-template-columns: repeat(2, 1fr); }

@@ -12,7 +12,7 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- верхняя строка -->
+    <!-- Шапка -->
     <header class="top">
       <div class="brand">ONECLICKML</div>
       <p class="intro">Automatic feature analysis tool.<br />Upload a dataset, find what predicts the outcome.</p>
@@ -22,10 +22,10 @@
       <a class="contact" href="https://github.com/scaredofthesix/OneClickML" target="_blank">GitHub</a>
     </header>
 
-    <!-- гигантский заголовок -->
+    <!-- Заголовок -->
     <h1 class="hero">PREDICT</h1>
 
-    <!-- строка управления -->
+    <!-- Панель управления: загрузка CSV, выбор таргета, запуск -->
     <div class="bar">
       <div class="bar__left">
         <label class="upload" id="drop">
@@ -42,16 +42,16 @@
     </div>
     <hr class="rule" />
 
-    <!-- результаты -->
+    <!-- Результаты, показываются после ответа сервера -->
     <main class="results" id="results" hidden>
-      <!-- лучший признак — первым -->
+      <!-- Лучший признак -->
       <section class="best">
         <span class="best__label">BEST PREDICTIVE FEATURE</span>
         <span class="best__name" id="bestFeature">—</span>
         <span class="best__score" id="bestScore">—</span>
       </section>
 
-      <!-- график + карточки признаков -->
+      <!-- График связи и карточки по всем признакам -->
       <div class="grid">
         <article class="card card--wide">
           <div class="card__chart"><canvas id="chart"></canvas></div>
@@ -60,10 +60,10 @@
             <span class="card__cat">RELATIONSHIP</span>
           </div>
         </article>
-        <!-- карточки признаков добавляются скриптом -->
+        <!-- карточки признаков добавляет app.js -->
       </div>
 
-      <!-- предсказание нового значения -->
+      <!-- Предсказание нового значения -->
       <section class="predict">
         <div class="predict__head">PREDICT NEW VALUE</div>
         <div class="predict__inputs" id="predictInputs"></div>

@@ -1,4 +1,4 @@
-// --- элементы ---
+// Ссылки на элементы страницы, чтобы каждый раз не искать их заново
 const fileInput = document.getElementById("file");
 const drop = document.getElementById("drop");
 const dropText = document.getElementById("dropText");
@@ -16,7 +16,7 @@ let selectedFile = null;
 let currentTarget = null;
 let chart = null;
 
-// --- выбор файла ---
+// Выбор файла: клик по области загрузки открывает системный диалог
 drop.addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", () => handleFile(fileInput.files[0]));
 
@@ -26,7 +26,8 @@ function handleFile(file) {
   dropText.textContent = `[ ${file.name} ]`;
   const reader = new FileReader();
   reader.onload = () => {
-    // снимаем BOM и определяем разделитель по первой строке
+    // По первой строке файла собираем список колонок: снимаем BOM,
+    // угадываем разделитель и заполняем выпадающий список таргетов
     const header = reader.result.split(/\r?\n/)[0].replace(/^﻿/, "");
     const delims = [",", ";", "\t", "|"];
     const delim = delims.reduce((best, d) =>
@@ -43,7 +44,7 @@ function handleFile(file) {
   reader.readAsText(file.slice(0, 65536));
 }
 
-// --- анализ ---
+// Анализ: отправляем файл и выбранный таргет на бэкенд
 runBtn.addEventListener("click", async () => {
   if (!selectedFile) return;
   setBusy(runBtn, true, "RUN");
@@ -71,7 +72,7 @@ function setBusy(btn, busy, label) {
   if (busy) { statusEl.textContent = ""; statusEl.classList.remove("error"); }
 }
 
-// --- отрисовка результата ---
+// Отрисовка ответа сервера: лучший признак, график, карточки, форма предсказания
 function renderResults(data) {
   results.hidden = false;
   currentTarget = data.target;
@@ -91,7 +92,8 @@ function renderCards(scores, best, metric) {
   grid.querySelectorAll(".card--feature").forEach(el => el.remove());
 
   const entries = Object.entries(scores);
-  // столбик по реальной силе: лучший = 100%, бесполезные (<=0) = почти пусто
+  // Высота столбика показывает силу признака: у лучшего он во всю карточку,
+  // у бесполезных (score не больше нуля) остаётся полоска
   const maxPos = Math.max(...entries.map(([, v]) => v), 1e-9);
 
   for (const [name, val] of entries) {
@@ -112,7 +114,7 @@ function renderCards(scores, best, metric) {
   }
 }
 
-// --- форма предсказания ---
+// Форма предсказания: поля строятся по описанию признаков, которое пришло с сервера
 function buildPredictForm(features) {
   predictInputs.innerHTML = features.map(f => {
     const input = f.type === "number"
@@ -149,7 +151,7 @@ predictBtn.addEventListener("click", async () => {
   }
 });
 
-// --- график ---
+// График: точки для числового признака, столбики для категориального
 function renderChart(c) {
   if (chart) chart.destroy();
   const ctx = document.getElementById("chart");
