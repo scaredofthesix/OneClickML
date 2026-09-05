@@ -1,3 +1,7 @@
+# Черновик, с которого начинался проект: тут всё написано в одном файле и
+# выполняется сразу при запуске. Рабочая версия этой логики живёт в core.py,
+# этот файл оставлен как песочница для экспериментов с моделями.
+
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, cross_val_score, RandomizedSearchCV
@@ -9,12 +13,14 @@ from sklearn.metrics import accuracy_score, f1_score, r2_score, mean_squared_err
 from sklearn.compose import ColumnTransformer
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 
+# Датасет и таргет захардкожены, менять руками
 df = pd.read_csv("50_Startups_dataset.csv")
 target = "Profit"
 X = df.drop(target, axis=1)
 y = df[target]
 
 def detect_task(y):
+    # Числовой таргет с большим числом значений это регрессия, остальное классификация
     if pd.api.types.is_numeric_dtype(y) and y.nunique() > 20:
         return "regression"
     return "classification"
@@ -22,6 +28,7 @@ def detect_task(y):
 print(detect_task(df["State"]))
 
 def divide(x):
+    # Делим колонки на числовые и строковые
     numerical = x.select_dtypes(include="number").columns
     categorical = x.select_dtypes(include="object").columns
     return numerical.tolist(), categorical.tolist()
@@ -29,6 +36,8 @@ def divide(x):
 numerical, categorical = divide(X)
 
 def preprocessing(numerical, categorical):
+    # Числа: медиана вместо пропусков плюс масштабирование
+    # Строки: мода вместо пропусков плюс one-hot
     numerical_pipe = Pipeline(steps = [("imputer", SimpleImputer(strategy="median")),("scaler", StandardScaler())])
     categorical_pipe = Pipeline(steps=[("imputer", SimpleImputer(strategy="most_frequent")),("onehot", OneHotEncoder(handle_unknown="ignore"))])
     preprocessor = ColumnTransformer([("num", numerical_pipe, numerical),("cat", categorical_pipe, categorical)])
@@ -38,6 +47,7 @@ preprocessor = preprocessing(numerical, categorical)
 task = detect_task(y)
 
 def get_models(task):
+    # Набор кандидатов под тип задачи вместе с сеткой гиперпараметров
     models_reg = {"lasso": {"model": Lasso(),
                         "params": {"model__alpha": np.logspace(-3, 1, 50)}},
                   "tree": {"model": DecisionTreeRegressor(random_state=42),
@@ -56,6 +66,8 @@ def get_models(task):
 models = get_models(task)
 
 def train(X, y, models,preprocessor, task):
+    # Перебираем модели случайным поиском по гиперпараметрам,
+    # берём лучшую по кросс-валидации и меряем её на отложенной выборке
     if task == "regression":
         scoring = "r2"
     else:
@@ -79,6 +91,7 @@ def train(X, y, models,preprocessor, task):
     return best_name, best_model.best_estimator_, test_score
 
 def find_best_feature(X, y, task, numerical , categorical):
+    # Гоняем каждый признак по отдельности и возвращаем самый сильный
     results = {}
     if task == "regression":
         model = LinearRegression()
@@ -98,7 +111,7 @@ def find_best_feature(X, y, task, numerical , categorical):
 
 
 def predict_new(model, new_data, X):
+    # Предсказание по одной новой строке, порядок колонок берём из обучающей таблицы
     new_df = pd.DataFrame([new_data], columns=X.columns)
     prediction = model.predict(new_df)
     return prediction[0]
-

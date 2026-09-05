@@ -1,11 +1,7 @@
-"""
-core.py - ML-ядро сервиса OneClickML.
-
-Тут только функции, никакого кода на верхнем уровне (кроме самотеста).
-Веб-слой (app.py) импортирует analyze() и вызывает её по запросу.
-
-Точка входа: analyze(df, target) -> dict, готовый к отдаче в JSON.
-"""
+# ML-ядро сервиса. Тут только функции, ничего не выполняется при импорте
+# (кроме блока самопроверки внизу). Веб-слой app.py импортирует отсюда
+# analyze и predict_value.
+# Главная точка входа: analyze(df, target) возвращает готовый для JSON словарь.
 
 from __future__ import annotations
 
@@ -21,12 +17,12 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 REGRESSION_UNIQUE_THRESHOLD = 20
 CV_FOLDS = 5
 # Категориальный признак с бОльшим числом уникальных значений считаем мусором
-# (ID, имена, время) - в one-hot он раздулся бы на тысячи колонок.
+# (id, имена, время): в one-hot он раздулся бы на тысячи колонок.
 MAX_CATEGORY_UNIQUE = 50
 
 
 def prepare(df: pd.DataFrame) -> pd.DataFrame:
-    """Приводим типы к пригодным для sklearn: bool -> 0/1."""
+    # Приводим типы к тем, что понимает sklearn: bool превращаем в 0 и 1.
     df = df.copy()
     for col in df.columns:
         if df[col].dtype == bool:
@@ -35,37 +31,38 @@ def prepare(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def usable_features(x: pd.DataFrame) -> pd.DataFrame:
-    """Оставляем только пригодные признаки: убираем константы и
-    категориальные столбцы-идентификаторы с огромным числом значений."""
+    # Отсеиваем непригодные колонки: константы и категориальные
+    # идентификаторы с огромным числом значений.
     keep = []
     for col in x.columns:
         nunique = x[col].nunique(dropna=True)
         if nunique <= 1:
-            continue  # константа - бесполезна
+            continue  # константа, предсказывать по ней нечего
         if not pd.api.types.is_numeric_dtype(x[col]) and nunique > MAX_CATEGORY_UNIQUE:
-            continue  # ID / текст / время - раздуло бы one-hot
+            continue  # id, текст или дата, раздуло бы one-hot
         keep.append(col)
     return x[keep]
 
 
 def detect_task(y: pd.Series) -> str:
-    """Регрессия, если таргет числовой и значений много (непрерывная величина).
-    Иначе классификация (текстовые метки или мало уникальных значений)."""
+    # Регрессия, если таргет числовой и значений много, то есть величина непрерывная.
+    # Всё остальное (текстовые метки, мало уникальных значений) считаем классификацией.
     if pd.api.types.is_numeric_dtype(y) and y.nunique() > REGRESSION_UNIQUE_THRESHOLD:
         return "regression"
     return "classification"
 
 
 def split_features(x: pd.DataFrame) -> tuple[list[str], list[str]]:
-    """Делим колонки на числовые и категориальные (их обрабатывают по-разному)."""
+    # Разделяем колонки на числовые и категориальные, обрабатываются они по-разному.
     numerical = x.select_dtypes(include="number").columns.tolist()
     categorical = [col for col in x.columns if col not in numerical]
     return numerical, categorical
 
 
 def build_preprocessor(numerical: list[str], categorical: list[str]) -> ColumnTransformer:
-    """Препроцессор внутри Pipeline: imputer/scaler учатся только на train,
-    значит нет утечки данных. Числа -> медиана + масштаб, строки -> мода + one-hot."""
+    # Препроцессор живёт внутри Pipeline, поэтому imputer и scaler учатся
+    # только на train-части и утечки данных нет.
+    # Числа: заполняем медианой и масштабируем. Строки: заполняем модой и делаем one-hot.
     numerical_pipe = Pipeline(steps=[
         ("imputer", SimpleImputer(strategy="median")),
         ("scaler", StandardScaler()),
@@ -87,8 +84,8 @@ def find_best_feature(
     numerical: list[str],
     categorical: list[str],
 ) -> tuple[str, dict[str, float]]:
-    """Для каждого признака по отдельности обучаем простую модель и меряем
-    качество кросс-валидацией. Победитель = самый предсказательный признак."""
+    # Каждый признак обучаем по отдельности и меряем качество кросс-валидацией.
+    # Победитель и есть самый предсказательный признак.
     if task == "regression":
         model = LinearRegression()
         scoring = "r2"
@@ -110,10 +107,10 @@ def find_best_feature(
 
 
 def _chart_data(df: pd.DataFrame, feature: str, target: str, task: str) -> dict:
-    """Данные для графика связи лучшего признака с таргетом."""
+    # Готовим данные для графика связи лучшего признака с таргетом.
     sub = df[[feature, target]].dropna()
     if pd.api.types.is_numeric_dtype(sub[feature]):
-        # Числовой признак -> точечный график (scatter).
+        # Числовой признак рисуем точками.
         return {
             "type": "scatter",
             "x_label": feature,
@@ -121,7 +118,8 @@ def _chart_data(df: pd.DataFrame, feature: str, target: str, task: str) -> dict:
             "x": sub[feature].tolist(),
             "y": sub[target].tolist(),
         }
-    # Категориальный признак -> столбики (среднее таргета / счётчик по категориям).
+    # Категориальный признак рисуем столбиками: для регрессии берём среднее
+    # таргета по категории, для классификации количество записей.
     grouped = sub.groupby(feature)[target]
     agg = grouped.mean() if task == "regression" else grouped.count()
     return {
@@ -134,7 +132,7 @@ def _chart_data(df: pd.DataFrame, feature: str, target: str, task: str) -> dict:
 
 
 def analyze(df: pd.DataFrame, target: str) -> dict:
-    """Главная функция: таблица + имя таргета -> результат (готов к JSON)."""
+    # Главная функция: таблица и имя таргета на вход, весь результат разбора на выход.
     if target not in df.columns:
         raise ValueError(f"Колонка-таргет {target!r} не найдена в таблице")
 
@@ -161,8 +159,8 @@ def analyze(df: pd.DataFrame, target: str) -> dict:
 
 
 def feature_spec(x: pd.DataFrame) -> list[dict]:
-    """Описание признаков для формы ввода предсказания:
-    числовой -> поле числа, категориальный -> выпадающий список значений."""
+    # Описание признаков для формы предсказания на фронте: числовой станет
+    # полем ввода, категориальный выпадающим списком значений.
     spec = []
     for col in x.columns:
         if pd.api.types.is_numeric_dtype(x[col]):
@@ -174,8 +172,8 @@ def feature_spec(x: pd.DataFrame) -> list[dict]:
 
 
 def train_model(df: pd.DataFrame, target: str):
-    """Обучаем модель на ВСЕХ признаках (для предсказания новых значений).
-    Возвращает обученный пайплайн, тип задачи и список колонок-признаков."""
+    # Обучаем модель уже на всех признаках сразу, это нужно для предсказания новых значений.
+    # Возвращаем обученный пайплайн, тип задачи и список колонок-признаков.
     df = prepare(df)
     y = df[target]
     x = usable_features(df.drop(columns=[target]))
@@ -189,11 +187,12 @@ def train_model(df: pd.DataFrame, target: str):
 
 
 def predict_value(df: pd.DataFrame, target: str, values: dict) -> dict:
-    """Обучает модель и предсказывает таргет по введённым значениям признаков."""
+    # Обучаем модель и предсказываем таргет по значениям, введённым в форме.
     df = prepare(df)
     pipe, task, columns = train_model(df, target)
     row = {}
     for col in columns:
+        # собираем одну строку в том же порядке колонок, что был при обучении
         raw = values.get(col)
         if pd.api.types.is_numeric_dtype(df[col]):
             row[col] = float(raw) if raw not in (None, "") else None
@@ -205,6 +204,7 @@ def predict_value(df: pd.DataFrame, target: str, values: dict) -> dict:
 
 
 if __name__ == "__main__":
+    # Самопроверка: запустить файл напрямую и посмотреть разбор на демо-датасете.
     import json
     import os
 

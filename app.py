@@ -1,9 +1,6 @@
-"""
-app.py - веб-слой OneClickML на FastAPI.
-
-Принимает CSV + имя таргета, прогоняет через ML-ядро (core.analyze)
-и возвращает JSON. Раздаёт статический фронтенд из папки static/.
-"""
+# Веб-слой OneClickML на FastAPI.
+# Принимает CSV и имя целевой колонки, гоняет через ML-ядро из core.py,
+# отдаёт результат в JSON. Отсюда же раздаётся фронтенд из папки static.
 
 import io
 import json
@@ -19,22 +16,23 @@ app = FastAPI(title="OneClickML")
 
 
 def _read_csv(raw: bytes) -> pd.DataFrame:
-    """Читаем CSV устойчиво: пробуем разные кодировки, авто-определяем
-    разделитель (запятая, точка с запятой, табуляция), снимаем BOM."""
+    # Читаем CSV с запасом прочности: перебираем кодировки, разделитель
+    # определяем автоматически, BOM снимаем.
     if not raw.strip():
         raise HTTPException(status_code=400, detail="Файл пустой")
 
     last_error = None
     for encoding in ("utf-8-sig", "cp1251", "latin-1"):
         try:
-            # sep=None + engine="python" -> pandas сам определяет разделитель
+            # sep=None вместе с engine="python" заставляет pandas угадать разделитель
             df = pd.read_csv(io.BytesIO(raw), sep=None, engine="python", encoding=encoding)
             if df.shape[1] == 0:
                 raise ValueError("в файле не найдено колонок")
-            # убираем мусорный авто-индекс, если он попал первой колонкой
+            # чистим названия колонок от лишних пробелов
             df.columns = [str(c).strip() for c in df.columns]
             return df
         except UnicodeDecodeError as exc:
+            # кодировка не подошла, пробуем следующую
             last_error = exc
             continue
         except Exception as exc:
@@ -44,7 +42,7 @@ def _read_csv(raw: bytes) -> pd.DataFrame:
 
 @app.post("/api/analyze")
 async def api_analyze(file: UploadFile = File(...), target: str = Form(...)) -> JSONResponse:
-    """Загруженный CSV + имя таргета -> результат анализа в JSON."""
+    # Основной эндпоинт: CSV плюс имя таргета на вход, разбор в JSON на выход.
     df = _read_csv(await file.read())
     try:
         result = analyze(df, target)
@@ -61,7 +59,7 @@ async def api_predict(
     target: str = Form(...),
     values: str = Form(...),
 ) -> JSONResponse:
-    """CSV + таргет + значения признаков (JSON) -> предсказание таргета."""
+    # Тот же CSV плюс значения признаков из формы, в ответе предсказанный таргет.
     df = _read_csv(await file.read())
     try:
         parsed = json.loads(values)
@@ -75,9 +73,9 @@ async def api_predict(
 
 @app.get("/")
 def index() -> FileResponse:
-    """Главная страница."""
+    # Главная страница, она же весь интерфейс.
     return FileResponse("static/index.html")
 
 
-# Статика (CSS/JS/видео). StaticFiles поддерживает range-запросы -> видео перематывается.
+# Статика: CSS, JS, картинки. StaticFiles умеет range-запросы, поэтому видео перематывается.
 app.mount("/static", StaticFiles(directory="static"), name="static")
