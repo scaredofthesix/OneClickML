@@ -1,0 +1,100 @@
+[
+  {
+    "slug": "students",
+    "file": "students.csv",
+    "target": "exam_score",
+    "task": "regression",
+    "title": {
+      "en": "Students and exams",
+      "ru": "Студенты и экзамен"
+    },
+    "why": {
+      "en": "The baseline to start from. A clean linear relationship with no traps: study hours score around 0.84 R2, every other feature is clearly weaker. If the service gets this one wrong, the problem is in the service, not in the data.",
+      "ru": "Эталон, с которого стоит начинать. Честная линейная связь без подвохов: часы подготовки дают R2 около 0.84, остальные признаки заметно слабее. Если сервис врёт даже здесь, дело в сервисе, а не в данных."
+    }
+  },
+  {
+    "slug": "startups",
+    "file": "startups.csv",
+    "target": "Profit",
+    "task": "regression",
+    "title": {
+      "en": "Startup profit",
+      "ru": "Прибыль стартапов"
+    },
+    "why": {
+      "en": "A cross-validation trap. R&D spend correlates with profit almost perfectly, yet the score comes out negative: there are only 50 rows and the file is sorted by profit, so folds split without shuffling land in different target ranges and the model is forced to extrapolate. The junk index column Unnamed: 0 is visible here too.",
+      "ru": "Ловушка кросс-валидации. Расходы на R&D коррелируют с прибылью почти идеально, но score выходит отрицательным: строк всего 50, и файл отсортирован по прибыли, поэтому фолды при разбиении без перемешивания попадают в разные диапазоны таргета и модель вынуждена экстраполировать. Заодно виден мусорный столбец-индекс Unnamed: 0."
+    }
+  },
+  {
+    "slug": "passengers",
+    "file": "passengers.csv",
+    "target": "survived",
+    "task": "classification",
+    "title": {
+      "en": "Passengers: who survived",
+      "ru": "Пассажиры: кто выжил"
+    },
+    "why": {
+      "en": "A categorical feature beats every numeric one: sex scores about 0.76 F1 against 0.48 for age. This is exactly why the pipeline does one-hot encoding — without it the text column would have to be thrown away.",
+      "ru": "Категориальный признак (пол) предсказывает лучше всех числовых: F1 около 0.76 против 0.48 у возраста. Ровно ради таких случаев в пайплайне стоит one-hot кодирование, без него текстовую колонку пришлось бы выбросить."
+    }
+  },
+  {
+    "slug": "houses",
+    "file": "houses.csv",
+    "target": "price_k",
+    "task": "regression",
+    "title": {
+      "en": "Apartment prices",
+      "ru": "Цены на квартиры"
+    },
+    "why": {
+      "en": "Numeric and categorical features mixed in one task. Floor area carries most of the signal (R2 around 0.59), the district is noticeably weaker but not useless. A good reminder that the best feature is not the same thing as the only useful feature.",
+      "ru": "Смесь числовых и категориальных признаков. Площадь даёт основной вклад (R2 около 0.59), район заметно слабее, но не бесполезен. Хороший пример того, что «лучший признак» не равно «единственный нужный признак»."
+    }
+  },
+  {
+    "slug": "churn",
+    "file": "churn.csv",
+    "target": "is_churn",
+    "task": "classification",
+    "title": {
+      "en": "Customer churn",
+      "ru": "Отток клиентов"
+    },
+    "why": {
+      "en": "Imbalanced classes: roughly one customer in five churns. Look at the feature list — they all score about the same, around 0.65. That does not make them equally useful: the model simply answers \"stayed\" almost every time and collects the metric on that. A classic reason not to trust a single number.",
+      "ru": "Несбалансированные классы: ушедших примерно каждый пятый. Смотри на список признаков — у всех score почти одинаковый, около 0.65. Это не значит, что все они одинаково полезны: модель просто почти всегда отвечает «остался» и на этом набирает метрику. Классический повод не верить одной цифре."
+    }
+  },
+  {
+    "slug": "leaky_sales",
+    "file": "leaky_sales.csv",
+    "target": "revenue",
+    "task": "regression",
+    "title": {
+      "en": "Sales with target leakage",
+      "ru": "Продажи с утечкой таргета"
+    },
+    "why": {
+      "en": "A trap worth learning to recognise. The total_with_vat column is the target itself multiplied by 1.2, and it scores exactly 1.00. A perfect result almost always means leakage rather than a brilliant model.",
+      "ru": "Ловушка, которую важно уметь узнавать. Колонка total_with_vat — это сам таргет, умноженный на 1.2, и score по ней ровно 1.00. Идеальный результат почти всегда означает не гениальную модель, а утечку ответа в признаки."
+    }
+  },
+  {
+    "slug": "noise",
+    "file": "noise.csv",
+    "target": "target",
+    "task": "regression",
+    "title": {
+      "en": "Pure noise",
+      "ru": "Чистый шум"
+    },
+    "why": {
+      "en": "The sanity check in reverse: there is no relationship in this data at all. Every score hovers around zero or below, which is the correct behaviour. A service that finds an important feature with a high score in noise is lying to you.",
+      "ru": "Обратная проверка: связи в данных нет вообще. Все score болтаются около нуля и ниже — это правильное поведение. Сервис, который и на шуме находит «важный признак» с высоким score, обманывает."
+    }
+  }
+]

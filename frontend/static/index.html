@@ -8,73 +8,82 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer></script>
+  <script src="/static/i18n.js" defer></script>
   <script src="/static/app.js" defer></script>
 </head>
 <body>
   <div class="wrap">
-    <!-- Шапка -->
     <header class="top">
       <div class="brand">ONECLICKML</div>
-      <p class="intro">Automatic feature analysis tool.<br />Upload a dataset, find what predicts the outcome.</p>
-      <nav class="nav">
-        <span class="active">&bull; Analyze</span>
-      </nav>
-      <a class="contact" href="https://github.com/scaredofthesix/OneClickML" target="_blank">GitHub</a>
+      <p class="intro" data-i18n="intro"></p>
+      <div class="top__right">
+        <nav class="nav"><span class="active" data-i18n="nav.analyze"></span></nav>
+        <div class="switch" id="langSwitch">
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="ru">RU</button>
+        </div>
+        <div class="switch" id="themeSwitch">
+          <button type="button" data-theme="light" data-i18n="theme.light"></button>
+          <button type="button" data-theme="dark" data-i18n="theme.dark"></button>
+        </div>
+        <a class="contact" href="https://github.com/scaredofthesix/OneClickML" target="_blank">GitHub</a>
+      </div>
     </header>
 
-    <!-- Заголовок -->
-    <h1 class="hero">PREDICT</h1>
+    <h1 class="hero" data-i18n="hero"></h1>
 
-    <!-- Панель управления: загрузка CSV, выбор таргета, запуск -->
     <div class="bar">
       <div class="bar__left">
         <label class="upload" id="drop">
           <input type="file" id="file" accept=".csv" hidden />
-          <span id="dropText">[ UPLOAD CSV ]</span>
+          <span id="dropText" data-i18n="upload"></span>
         </label>
       </div>
       <div class="bar__right">
-        <span class="mono-label">TARGET</span>
+        <span class="mono-label" data-i18n="target"></span>
         <select id="target" disabled></select>
-        <button id="run" class="run" disabled>RUN</button>
+        <button id="run" class="run" disabled data-i18n="run"></button>
         <span class="status" id="status"></span>
       </div>
     </div>
     <hr class="rule" />
 
-    <!-- Результаты, показываются после ответа сервера -->
     <main class="results" id="results" hidden>
-      <!-- Лучший признак -->
       <section class="best">
-        <span class="best__label">BEST PREDICTIVE FEATURE</span>
+        <span class="best__label" data-i18n="best"></span>
         <span class="best__name" id="bestFeature">—</span>
         <span class="best__score" id="bestScore">—</span>
       </section>
 
-      <!-- График связи и карточки по всем признакам -->
       <div class="grid">
         <article class="card card--wide">
           <div class="card__chart"><canvas id="chart"></canvas></div>
           <div class="card__meta">
             <span class="card__title" id="chartTitle">—</span>
-            <span class="card__cat">RELATIONSHIP</span>
+            <span class="card__cat" data-i18n="relationship"></span>
           </div>
         </article>
-        <!-- карточки признаков добавляет app.js -->
       </div>
 
-      <!-- Предсказание нового значения -->
       <section class="predict">
-        <div class="predict__head">PREDICT NEW VALUE</div>
+        <div class="predict__head" data-i18n="predict.head"></div>
         <div class="predict__inputs" id="predictInputs"></div>
-        <button id="predictBtn" class="run">PREDICT</button>
+        <button id="predictBtn" class="run" data-i18n="predict.button"></button>
         <div class="predict__out" id="predictOut"></div>
       </section>
     </main>
 
+    <section class="datasets" id="datasets">
+      <div class="datasets__head">
+        <span data-i18n="datasets.head"></span>
+        <span class="datasets__hint" id="datasetsHint"></span>
+      </div>
+      <div class="datasets__grid" id="datasetsGrid"></div>
+    </section>
+
     <footer class="foot">
       <span>OneClickML</span>
-      <span id="footInfo">Regression &amp; classification, auto-detected</span>
+      <span id="footInfo" data-i18n="foot.default"></span>
     </footer>
   </div>
 </body>

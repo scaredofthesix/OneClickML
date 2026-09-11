@@ -1,0 +1,61 @@
+const I18N = {
+  en: {
+    "intro": "Automatic feature analysis tool.<br />Upload a dataset, find what predicts the outcome.",
+    "nav.analyze": "• Analyze",
+    "theme.light": "LIGHT",
+    "theme.dark": "DARK",
+    "hero": "PREDICT",
+    "upload": "[ UPLOAD CSV ]",
+    "target": "TARGET",
+    "run": "RUN",
+    "best": "BEST PREDICTIVE FEATURE",
+    "relationship": "RELATIONSHIP",
+    "predict.head": "PREDICT NEW VALUE",
+    "predict.button": "PREDICT",
+    "datasets.head": "TEST DATASETS",
+    "datasets.hint": "{n} in database — click to load",
+    "datasets.error": "database unavailable",
+    "foot.default": "Regression & classification, auto-detected",
+    "foot.info": "{task} / target: {target}",
+    "task.regression": "REGRESSION",
+    "task.classification": "CLASSIFICATION",
+    "error.analyze": "Analysis error",
+    "error.predict": "Prediction error",
+    "predict.result": "Predicted {target}:",
+  },
+  ru: {
+    "intro": "Автоматический анализ признаков.<br />Загрузи датасет и узнай, что предсказывает результат.",
+    "nav.analyze": "• Анализ",
+    "theme.light": "СВЕТЛАЯ",
+    "theme.dark": "ТЁМНАЯ",
+    "hero": "ПРОГНОЗ",
+    "upload": "[ ЗАГРУЗИТЬ CSV ]",
+    "target": "ТАРГЕТ",
+    "run": "ЗАПУСК",
+    "best": "САМЫЙ ПРЕДСКАЗАТЕЛЬНЫЙ ПРИЗНАК",
+    "relationship": "СВЯЗЬ С ТАРГЕТОМ",
+    "predict.head": "ПРЕДСКАЗАТЬ НОВОЕ ЗНАЧЕНИЕ",
+    "predict.button": "ПРЕДСКАЗАТЬ",
+    "datasets.head": "ТЕСТОВЫЕ ДАТАСЕТЫ",
+    "datasets.hint": "{n} в базе — нажми, чтобы загрузить",
+    "datasets.error": "база недоступна",
+    "foot.default": "Регрессия и классификация, тип задачи определяется сам",
+    "foot.info": "{task} / таргет: {target}",
+    "task.regression": "РЕГРЕССИЯ",
+    "task.classification": "КЛАССИФИКАЦИЯ",
+    "error.analyze": "Ошибка анализа",
+    "error.predict": "Ошибка предсказания",
+    "predict.result": "Предсказанный {target}:",
+  },
+};
+
+let currentLang = localStorage.getItem("lang") || "en";
+
+function t(key, vars = {}) {
+  const dict = I18N[currentLang] || I18N.en;
+  let text = dict[key] ?? I18N.en[key] ?? key;
+  for (const [name, value] of Object.entries(vars)) {
+    text = text.replaceAll(`{${name}}`, value);
+  }
+  return text;
+}

@@ -1,38 +1,39 @@
-# Веб-слой OneClickML на FastAPI.
-# Принимает CSV и имя целевой колонки, гоняет через ML-ядро из core.py,
-# отдаёт результат в JSON. Отсюда же раздаётся фронтенд из папки static.
-
 import io
 import json
+import os
+from pathlib import Path
 
 import pandas as pd
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+import db
 from core import analyze, predict_value
+
+STATIC_DIR = Path(os.getenv("STATIC_DIR", "../frontend/static"))
 
 app = FastAPI(title="OneClickML")
 
 
+@app.on_event("startup")
+def on_startup() -> None:
+    db.init_db()
+
+
 def _read_csv(raw: bytes) -> pd.DataFrame:
-    # Читаем CSV с запасом прочности: перебираем кодировки, разделитель
-    # определяем автоматически, BOM снимаем.
     if not raw.strip():
         raise HTTPException(status_code=400, detail="Файл пустой")
 
     last_error = None
     for encoding in ("utf-8-sig", "cp1251", "latin-1"):
         try:
-            # sep=None вместе с engine="python" заставляет pandas угадать разделитель
             df = pd.read_csv(io.BytesIO(raw), sep=None, engine="python", encoding=encoding)
             if df.shape[1] == 0:
                 raise ValueError("в файле не найдено колонок")
-            # чистим названия колонок от лишних пробелов
             df.columns = [str(c).strip() for c in df.columns]
             return df
         except UnicodeDecodeError as exc:
-            # кодировка не подошла, пробуем следующую
             last_error = exc
             continue
         except Exception as exc:
@@ -40,9 +41,16 @@ def _read_csv(raw: bytes) -> pd.DataFrame:
     raise HTTPException(status_code=400, detail=f"Не удалось определить кодировку файла: {last_error}")
 
 
+@app.get("/api/health")
+def health() -> dict:
+    try:
+        return {"status": "ok", "database": "ok", "datasets": db.count_datasets()}
+    except Exception as exc:
+        return {"status": "ok", "database": f"error: {exc}", "datasets": 0}
+
+
 @app.post("/api/analyze")
 async def api_analyze(file: UploadFile = File(...), target: str = Form(...)) -> JSONResponse:
-    # Основной эндпоинт: CSV плюс имя таргета на вход, разбор в JSON на выход.
     df = _read_csv(await file.read())
     try:
         result = analyze(df, target)
@@ -59,7 +67,6 @@ async def api_predict(
     target: str = Form(...),
     values: str = Form(...),
 ) -> JSONResponse:
-    # Тот же CSV плюс значения признаков из формы, в ответе предсказанный таргет.
     df = _read_csv(await file.read())
     try:
         parsed = json.loads(values)
@@ -71,11 +78,23 @@ async def api_predict(
     return JSONResponse(result)
 
 
-@app.get("/")
-def index() -> FileResponse:
-    # Главная страница, она же весь интерфейс.
-    return FileResponse("static/index.html")
+@app.get("/api/datasets")
+def api_datasets() -> JSONResponse:
+    return JSONResponse({"datasets": db.list_datasets()})
 
 
-# Статика: CSS, JS, картинки. StaticFiles умеет range-запросы, поэтому видео перематывается.
-app.mount("/static", StaticFiles(directory="static"), name="static")
+@app.get("/api/datasets/{slug}")
+def api_dataset(slug: str) -> JSONResponse:
+    data = db.get_dataset(slug)
+    if data is None:
+        raise HTTPException(status_code=404, detail="Датасет не найден")
+    return JSONResponse(data)
+
+
+if STATIC_DIR.is_dir():
+
+    @app.get("/")
+    def index() -> FileResponse:
+        return FileResponse(STATIC_DIR / "index.html")
+
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
