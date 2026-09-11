@@ -4,3 +4,5 @@ python-multipart
 pandas
 numpy
 scikit-learn
+sqlalchemy
+psycopg[binary]
