@@ -44,9 +44,14 @@ def _read_csv(raw: bytes) -> pd.DataFrame:
 @app.get("/api/health")
 def health() -> dict:
     try:
-        return {"status": "ok", "database": "ok", "datasets": db.count_datasets()}
+        return {
+            "status": "ok",
+            "database": "ok",
+            "datasets": db.count_datasets(),
+            "runs": db.count_runs(),
+        }
     except Exception as exc:
-        return {"status": "ok", "database": f"error: {exc}", "datasets": 0}
+        return {"status": "ok", "database": f"error: {exc}", "datasets": 0, "runs": 0}
 
 
 @app.post("/api/analyze")
@@ -58,6 +63,21 @@ async def api_analyze(file: UploadFile = File(...), target: str = Form(...)) -> 
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Ошибка анализа: {exc}")
+
+    try:
+        db.save_run(
+            filename=file.filename or "dataset.csv",
+            target=target,
+            task=result["task"],
+            best_feature=result["best_feature"],
+            best_score=float(result["best_score"]),
+            score_metric=result["score_metric"],
+            rows=int(df.shape[0]),
+            cols=int(df.shape[1]),
+        )
+    except Exception:
+        pass
+
     return JSONResponse(result)
 
 
@@ -76,6 +96,16 @@ async def api_predict(
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Ошибка предсказания: {exc}")
     return JSONResponse(result)
+
+
+@app.get("/api/history")
+def api_history(limit: int = 20) -> JSONResponse:
+    return JSONResponse({"runs": db.list_runs(limit=limit), "total": db.count_runs()})
+
+
+@app.delete("/api/history")
+def api_history_clear() -> JSONResponse:
+    return JSONResponse({"deleted": db.clear_runs()})
 
 
 @app.get("/api/datasets")

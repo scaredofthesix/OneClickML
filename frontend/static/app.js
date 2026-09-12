@@ -12,6 +12,8 @@ const predictBtn = document.getElementById("predictBtn");
 const predictOut = document.getElementById("predictOut");
 const datasetsGrid = document.getElementById("datasetsGrid");
 const datasetsHint = document.getElementById("datasetsHint");
+const historyBody = document.getElementById("historyBody");
+const historyCount = document.getElementById("historyCount");
 
 let selectedFile = null;
 let currentTarget = null;
@@ -20,6 +22,7 @@ let lastResult = null;
 let lastChart = null;
 let catalog = [];
 let activeSlug = null;
+let history = [];
 
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
@@ -48,6 +51,7 @@ function applyLang(lang) {
     });
   }
   renderCatalog();
+  renderHistory();
 }
 
 document.getElementById("themeSwitch").addEventListener("click", (e) => {
@@ -101,6 +105,7 @@ runBtn.addEventListener("click", async () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || t("error.analyze"));
     renderResults(data);
+    loadHistory();
   } catch (err) {
     statusEl.textContent = err.message;
     statusEl.classList.add("error");
@@ -286,6 +291,43 @@ async function pickDataset(slug) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+async function loadHistory() {
+  try {
+    const res = await fetch("/api/history");
+    const data = await res.json();
+    history = data.runs;
+    renderHistory();
+  } catch (err) {
+    history = [];
+    historyCount.textContent = "";
+    historyBody.innerHTML = `<tr><td class="history__empty" colspan="6">${t("history.error")}</td></tr>`;
+  }
+}
+
+function renderHistory() {
+  if (!historyBody) return;
+  historyCount.textContent = history.length ? t("history.count", { n: history.length }) : "";
+  if (!history.length) {
+    historyBody.innerHTML = `<tr><td class="history__empty" colspan="6">${t("history.empty")}</td></tr>`;
+    return;
+  }
+  historyBody.innerHTML = history.map((r) => `
+    <tr>
+      <td>${r.created_at.replace("T", " ")}</td>
+      <td>${r.filename}</td>
+      <td>${r.target}</td>
+      <td>${t(`task.${r.task}`)}</td>
+      <td>${r.best_feature}</td>
+      <td>${r.score_metric} ${r.best_score}</td>
+    </tr>`).join("");
+}
+
+document.getElementById("historyClear").addEventListener("click", async () => {
+  await fetch("/api/history", { method: "DELETE" });
+  loadHistory();
+});
+
 applyTheme(localStorage.getItem("theme") || "light");
 applyLang(currentLang);
 loadDatasets();
+loadHistory();
