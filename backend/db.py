@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 import os
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
-from sqlalchemy import Integer, String, Text, create_engine, func, select
+from sqlalchemy import DateTime, Float, Integer, String, Text, create_engine, delete, func, select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
@@ -48,6 +49,35 @@ class Dataset(Base):
         if with_csv:
             data["csv"] = self.csv
         return data
+
+
+class Run(Base):
+    __tablename__ = "runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    filename: Mapped[str] = mapped_column(String(255))
+    target: Mapped[str] = mapped_column(String(255))
+    task: Mapped[str] = mapped_column(String(32))
+    best_feature: Mapped[str] = mapped_column(String(255))
+    best_score: Mapped[float] = mapped_column(Float)
+    score_metric: Mapped[str] = mapped_column(String(64))
+    rows: Mapped[int] = mapped_column(Integer)
+    cols: Mapped[int] = mapped_column(Integer)
+
+    def as_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "created_at": self.created_at.isoformat(timespec="seconds"),
+            "filename": self.filename,
+            "target": self.target,
+            "task": self.task,
+            "best_feature": self.best_feature,
+            "best_score": round(self.best_score, 4),
+            "score_metric": self.score_metric,
+            "rows": self.rows,
+            "cols": self.cols,
+        }
 
 
 def init_db(retries: int = 10, delay: float = 2.0) -> None:
@@ -115,3 +145,30 @@ def get_dataset(slug: str) -> dict | None:
 def count_datasets() -> int:
     with Session(engine) as session:
         return session.scalar(select(func.count()).select_from(Dataset)) or 0
+
+
+def save_run(**fields) -> dict:
+    with Session(engine) as session:
+        run = Run(**fields)
+        session.add(run)
+        session.commit()
+        session.refresh(run)
+        return run.as_dict()
+
+
+def list_runs(limit: int = 20) -> list[dict]:
+    with Session(engine) as session:
+        rows = session.scalars(select(Run).order_by(Run.id.desc()).limit(limit)).all()
+        return [row.as_dict() for row in rows]
+
+
+def count_runs() -> int:
+    with Session(engine) as session:
+        return session.scalar(select(func.count()).select_from(Run)) or 0
+
+
+def clear_runs() -> int:
+    with Session(engine) as session:
+        deleted = session.execute(delete(Run)).rowcount
+        session.commit()
+        return deleted

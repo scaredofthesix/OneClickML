@@ -73,6 +73,31 @@
       </section>
     </main>
 
+    <section class="history" id="history">
+      <div class="history__head">
+        <span data-i18n="history.head"></span>
+        <span class="history__right">
+          <span class="history__count" id="historyCount"></span>
+          <button type="button" id="historyClear" class="history__clear" data-i18n="history.clear"></button>
+        </span>
+      </div>
+      <div class="history__wrap">
+        <table class="history__table">
+          <thead>
+            <tr>
+              <th data-i18n="history.when"></th>
+              <th data-i18n="history.file"></th>
+              <th data-i18n="history.target"></th>
+              <th data-i18n="history.task"></th>
+              <th data-i18n="history.feature"></th>
+              <th data-i18n="history.score"></th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="datasets" id="datasets">
       <div class="datasets__head">
         <span data-i18n="datasets.head"></span>
