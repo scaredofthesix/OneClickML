@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pandas as pd
-import json
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression, LogisticRegression
@@ -9,7 +8,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-REGRESSION_UNIQUE_THRESHOLD = 2
+REGRESSION_UNIQUE_THRESHOLD = 20
 CV_FOLDS = 5
 MAX_CATEGORY_UNIQUE = 50
 

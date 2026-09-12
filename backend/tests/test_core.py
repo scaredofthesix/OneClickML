@@ -67,6 +67,15 @@ def test_detect_task_uses_unique_count():
     assert detect_task(pd.Series(range(100))) == "regression"
 
 
+def test_detect_task_switches_exactly_at_the_threshold():
+    assert detect_task(pd.Series(list(range(20)) * 3)) == "classification"
+    assert detect_task(pd.Series(list(range(21)) * 3)) == "regression"
+
+
+def test_detect_task_treats_text_target_as_classification():
+    assert detect_task(pd.Series([f"class_{i}" for i in range(50)])) == "classification"
+
+
 def test_prepare_converts_booleans_to_int():
     df = pd.DataFrame({"flag": [True, False, True]})
 
