@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    name: Линтер
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Установить ruff
+        run: pip install ruff
+
+      - name: Проверить стиль
+        run: ruff check backend
+
+  test:
+    name: Тесты
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Установить зависимости
+        run: pip install -r backend/requirements-dev.txt
+
+      - name: Прогнать тесты
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+psycopg://ci:ci@localhost:5432/ci
+          SEED_DIR: ${{ github.workspace }}/database/seed
+        run: pytest --cov=. --cov-report=term-missing --cov-report=xml --junitxml=report.xml
+
+      - name: Сохранить отчёты
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            backend/report.xml
+            backend/coverage.xml
+          retention-days: 14
+
+  build:
+    name: Сборка образов
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Собрать образ бэкенда
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          tags: oneclickml-backend:${{ github.sha }}
+          outputs: type=docker,dest=/tmp/backend-image.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Собрать образ фронтенда
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: false
+          tags: oneclickml-frontend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Сохранить образ бэкенда как артефакт
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-image
+          path: /tmp/backend-image.tar
+          retention-days: 7
+
+  smoke:
+    name: Проверка стека
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Поднять всё через compose
+        run: |
+          cp .env.example .env
+          docker compose up -d --build
+
+      - name: Дождаться бэкенда и проверить ответы
+        run: |
+          for i in $(seq 30); do
+            curl -fs localhost:8080/api/health && break
+            sleep 2
+          done
+          curl -fs localhost:8080/api/health | tee health.json
+          grep -q '"database":"ok"' health.json
+          grep -q '"datasets":7' health.json
+          curl -fs -X POST localhost:8080/api/analyze \
+            -F "file=@database/seed/students.csv" \
+            -F "target=exam_score" | grep -q '"best_feature":"hours_studied"'
+          curl -fs localhost:8080/api/history | grep -q '"total":1'
+
+      - name: Логи при падении
+        if: failure()
+        run: docker compose logs
+
+      - name: Погасить стек
+        if: always()
+        run: docker compose down -v

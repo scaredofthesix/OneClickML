@@ -47,13 +47,24 @@ Swagger: http://localhost:8000/docs
 не восстанавливаются из файлов. Поэтому `docker compose down -v` их теряет
 навсегда, а обычный `docker compose down` — нет.
 
+## Тесты и линтер
+
+```bash
+pip install -r backend/requirements-dev.txt
+cd backend && ruff check . && pytest --cov=.
+```
+
+22 теста на ML-ядро и API, покрытие 92%. Те же команды гоняет CI на каждый
+pull request.
+
 ## Структура
 
 ```
 backend/            FastAPI + ML-ядро
   app.py            эндпоинты /api/*
   core.py           ML-ядро: analyze(df, target) -> dict
-  db.py             Postgres через SQLAlchemy, каталог датасетов
+  db.py             Postgres через SQLAlchemy, каталог датасетов и история
+  tests/            pytest: ядро и API
   Dockerfile
 frontend/           статика и nginx
   static/           index.html, app.js, i18n.js, style.css
@@ -61,6 +72,7 @@ frontend/           статика и nginx
   Dockerfile
 database/seed/      CSV тестовых датасетов и catalog.json с описаниями
 docker-compose.yml  три сервиса: db + backend + frontend
+.github/workflows/  ci.yml (линтер, тесты, сборка, smoke) и cd.yml (публикация)
 ml.py               песочница, с которой начинался проект
 ```
 
