@@ -123,10 +123,10 @@ jobs:
           done
           curl -fs localhost:8080/api/health | tee health.json
           grep -q '"database":"ok"' health.json
-          grep -q '"datasets":7' health.json
+          grep -q '"datasets":10' health.json
           curl -fs -X POST localhost:8080/api/analyze \
-            -F "file=@database/seed/students.csv" \
-            -F "target=exam_score" | grep -q '"best_feature":"hours_studied"'
+            -F "file=@database/seed/iris.csv" \
+            -F "target=Species" | grep -q '"best_feature":"PetalWidthCm"'
           curl -fs localhost:8080/api/history | grep -q '"total":1'
 
       - name: Логи при падении

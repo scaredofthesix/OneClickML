@@ -18,24 +18,48 @@ def seed_dir() -> Path:
     return SEED_DIR
 
 
-@pytest.fixture(scope="session")
-def students(seed_dir: Path) -> pd.DataFrame:
-    return pd.read_csv(seed_dir / "students.csv")
+def _load(name: str) -> pd.DataFrame:
+    return pd.read_csv(SEED_DIR / name)
 
 
 @pytest.fixture(scope="session")
-def noise(seed_dir: Path) -> pd.DataFrame:
-    return pd.read_csv(seed_dir / "noise.csv")
+def iris() -> pd.DataFrame:
+    return _load("iris.csv")
 
 
 @pytest.fixture(scope="session")
-def leaky(seed_dir: Path) -> pd.DataFrame:
-    return pd.read_csv(seed_dir / "leaky_sales.csv")
+def students() -> pd.DataFrame:
+    return _load("students_performance.csv")
 
 
 @pytest.fixture(scope="session")
-def passengers(seed_dir: Path) -> pd.DataFrame:
-    return pd.read_csv(seed_dir / "passengers.csv")
+def titanic() -> pd.DataFrame:
+    return _load("titanic.csv")
+
+
+@pytest.fixture(scope="session")
+def telco() -> pd.DataFrame:
+    return _load("telco_churn.csv")
+
+
+@pytest.fixture(scope="session")
+def cars() -> pd.DataFrame:
+    return _load("car_details.csv")
+
+
+@pytest.fixture(scope="session")
+def avocado() -> pd.DataFrame:
+    return _load("avocado.csv")
+
+
+@pytest.fixture(scope="session")
+def netflix() -> pd.DataFrame:
+    return _load("netflix_titles.csv")
+
+
+@pytest.fixture(scope="session")
+def wine() -> pd.DataFrame:
+    return _load("wine_quality.csv")
 
 
 @pytest.fixture()

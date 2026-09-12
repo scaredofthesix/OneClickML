@@ -49,6 +49,7 @@ function applyLang(lang) {
       task: t(`task.${lastResult.task}`),
       target: lastResult.target,
     });
+    renderCleanup(lastResult.cleanup);
   }
   renderCatalog();
   renderHistory();
@@ -136,10 +137,20 @@ function renderResults(data) {
     target: data.target,
   });
 
+  renderCleanup(data.cleanup);
   renderChart(data.chart);
   renderCards(data.feature_scores, data.best_feature, data.score_metric);
   buildPredictForm(data.features);
   predictOut.textContent = "";
+}
+
+function renderCleanup(notes) {
+  const box = document.getElementById("cleanup");
+  const list = document.getElementById("cleanupList");
+  list.innerHTML = (notes || [])
+    .map((note) => `<li>${t(`cleanup.${note.action}`, { column: note.column, detail: note.detail })}</li>`)
+    .join("");
+  box.hidden = !notes || !notes.length;
 }
 
 function renderCards(scores, best, metric) {
@@ -272,10 +283,15 @@ function renderCatalog() {
         <span>${t("target")}: ${d.target}</span>
         <span>${d.rows} x ${d.cols}</span>
       </div>
+      ${d.source && d.source.url ? `<a class="ds__source" href="${d.source.url}" target="_blank" rel="noopener">${t("datasets.source")}: ${d.source.name}</a>` : ""}
     </article>`).join("");
 
   datasetsGrid.querySelectorAll(".ds").forEach((card) => {
     card.addEventListener("click", () => pickDataset(card.dataset.slug));
+  });
+  // ссылка на Kaggle не должна заодно подставлять датасет в анализ
+  datasetsGrid.querySelectorAll(".ds__source").forEach((link) => {
+    link.addEventListener("click", (event) => event.stopPropagation());
   });
 }
 

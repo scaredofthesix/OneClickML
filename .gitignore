@@ -220,6 +220,9 @@ __marimo__/
 uploads/
 *.joblib
 
+# Локальные базы SQLite: бэкенд без DATABASE_URL и прогон тестов
+backend/*.db
+
 # Local tooling and editor
 .claude/
 .idea/

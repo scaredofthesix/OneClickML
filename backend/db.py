@@ -6,7 +6,19 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
-from sqlalchemy import DateTime, Float, Integer, String, Text, create_engine, delete, func, select
+from sqlalchemy import (
+    DateTime,
+    Float,
+    Integer,
+    String,
+    Text,
+    create_engine,
+    delete,
+    func,
+    inspect,
+    select,
+    text,
+)
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
@@ -29,6 +41,8 @@ class Dataset(Base):
     title_ru: Mapped[str] = mapped_column(String(255))
     target: Mapped[str] = mapped_column(String(255))
     task: Mapped[str] = mapped_column(String(32))
+    source_name: Mapped[str] = mapped_column(String(255), default="")
+    source_url: Mapped[str] = mapped_column(String(500), default="")
     why_en: Mapped[str] = mapped_column(Text)
     why_ru: Mapped[str] = mapped_column(Text)
     rows: Mapped[int] = mapped_column(Integer)
@@ -43,6 +57,7 @@ class Dataset(Base):
             "why": {"en": self.why_en, "ru": self.why_ru},
             "target": self.target,
             "task": self.task,
+            "source": {"name": self.source_name, "url": self.source_url},
             "rows": self.rows,
             "cols": self.cols,
         }
@@ -85,12 +100,32 @@ def init_db(retries: int = 10, delay: float = 2.0) -> None:
     for _ in range(retries):
         try:
             Base.metadata.create_all(engine)
+            ensure_columns()
             seed_datasets()
             return
         except OperationalError as exc:
             last_error = exc
             time.sleep(delay)
     raise RuntimeError(f"database unavailable after {retries} attempts: {last_error}")
+
+
+def ensure_columns() -> None:
+    """Дописывает колонки, появившиеся после того, как таблицу уже создали.
+
+    Полноценные миграции проекту пока избыточны, а база у разработчика и в CI
+    живёт между запусками: без этого шага старая таблица datasets осталась бы
+    без источника датасета.
+    """
+    added = {
+        "source_name": "VARCHAR(255) DEFAULT '' NOT NULL",
+        "source_url": "VARCHAR(500) DEFAULT '' NOT NULL",
+    }
+    existing = {column["name"] for column in inspect(engine).get_columns(Dataset.__tablename__)}
+    with engine.begin() as connection:
+        for name, definition in added.items():
+            if name not in existing:
+                statement = f"ALTER TABLE {Dataset.__tablename__} ADD COLUMN {name} {definition}"
+                connection.execute(text(statement))
 
 
 def seed_datasets() -> int:
@@ -106,8 +141,9 @@ def seed_datasets() -> int:
             csv_path = SEED_DIR / item["file"]
             if not csv_path.exists():
                 continue
-            text = csv_path.read_text(encoding="utf-8")
-            lines = [line for line in text.splitlines() if line.strip()]
+            content = csv_path.read_text(encoding="utf-8")
+            lines = [line for line in content.splitlines() if line.strip()]
+            source = item.get("source", {})
             fields = {
                 "title_en": item["title"]["en"],
                 "title_ru": item["title"]["ru"],
@@ -115,9 +151,11 @@ def seed_datasets() -> int:
                 "why_ru": item["why"]["ru"],
                 "target": item["target"],
                 "task": item["task"],
+                "source_name": source.get("name", ""),
+                "source_url": source.get("url", ""),
                 "rows": max(len(lines) - 1, 0),
                 "cols": len(lines[0].split(",")) if lines else 0,
-                "csv": text,
+                "csv": content,
             }
             row = existing.get(item["slug"])
             if row is None:

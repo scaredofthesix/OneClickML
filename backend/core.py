@@ -8,17 +8,87 @@ from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+from cleaning import clean_frame, note
+
 REGRESSION_UNIQUE_THRESHOLD = 20
 CV_FOLDS = 5
 MAX_CATEGORY_UNIQUE = 50
+# Класс, который встречается реже, кросс-валидация всё равно не разложит по фолдам
+MIN_CLASS_ROWS = 2
 
 
-def prepare(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-    for col in df.columns:
-        if df[col].dtype == bool:
-            df[col] = df[col].astype(int)
-    return df
+def prepare(df: pd.DataFrame, target: str | None = None) -> pd.DataFrame:
+    frame, _ = prepare_with_notes(df, target)
+    return frame
+
+
+def prepare_with_notes(df: pd.DataFrame, target: str | None = None) -> tuple[pd.DataFrame, list[dict]]:
+    """Чистит сырую таблицу и рассказывает, что именно пришлось поменять."""
+    frame, notes = clean_frame(df, protect=target)
+    for col in frame.columns:
+        if frame[col].dtype == bool:
+            frame[col] = frame[col].astype(int)
+    return frame, notes
+
+
+def cv_folds(y: pd.Series, task: str) -> int:
+    """Фолдов не может быть больше, чем объектов в самом редком классе."""
+    if task == "regression":
+        return CV_FOLDS
+    return max(2, min(CV_FOLDS, int(y.value_counts().min())))
+
+
+def drop_rare_classes(df: pd.DataFrame, target: str) -> tuple[pd.DataFrame, list[str]]:
+    """Убирает классы-одиночки: на них обучение падает, а пользы от них нет."""
+    counts = df[target].value_counts()
+    rare = counts[counts < MIN_CLASS_ROWS].index.tolist()
+    if not rare:
+        return df, []
+    return df[~df[target].isin(rare)], rare
+
+
+def _dataset(df: pd.DataFrame, target: str) -> dict:
+    """Единая подготовка данных для анализа, обучения и предсказания."""
+    if target not in df.columns:
+        raise ValueError(f"Колонка-таргет {target!r} не найдена в таблице")
+
+    frame, notes = prepare_with_notes(df, target)
+
+    empty = int(frame[target].isna().sum())
+    if empty:
+        frame = frame[frame[target].notna()]
+        notes.append(note(target, "target_gaps", str(empty)))
+    if frame.empty:
+        raise ValueError(f"В колонке {target!r} не осталось ни одного значения")
+
+    if frame[target].dtype == object:
+        # sklearn не умеет сравнивать строки с пропусками-числами в одном столбце
+        frame[target] = frame[target].astype(str)
+
+    x = usable_features(frame.drop(columns=[target]))
+    if x.shape[1] == 0:
+        raise ValueError("В таблице нет пригодных признаков для анализа")
+
+    task = detect_task(frame[target])
+    if task == "classification":
+        frame, rare = drop_rare_classes(frame, target)
+        if rare:
+            notes.append(note(target, "rare_classes", ", ".join(map(str, rare[:5]))))
+        if frame[target].nunique() < 2:
+            raise ValueError(f"В колонке {target!r} остался один класс, предсказывать нечего")
+        x = x.loc[frame.index]
+
+    numerical, categorical = split_features(x)
+    return {
+        "frame": frame,
+        "x": x,
+        "y": frame[target],
+        "task": task,
+        "numerical": numerical,
+        "categorical": categorical,
+        "folds": cv_folds(frame[target], task),
+        "notes": notes,
+    }
 
 
 def usable_features(x: pd.DataFrame) -> pd.DataFrame:
@@ -66,6 +136,7 @@ def find_best_feature(
     task: str,
     numerical: list[str],
     categorical: list[str],
+    folds: int = CV_FOLDS,
 ) -> tuple[str, dict[str, float]]:
     if task == "regression":
         model = LinearRegression()
@@ -81,7 +152,7 @@ def find_best_feature(
         else:
             prep = build_preprocessor([], [feature])
         pipe = Pipeline([("prep", prep), ("model", model)])
-        scores[feature] = float(cross_val_score(pipe, x, y, cv=CV_FOLDS, scoring=scoring).mean())
+        scores[feature] = float(cross_val_score(pipe, x, y, cv=folds, scoring=scoring).mean())
 
     best = max(scores, key=scores.get)
     return best, scores
@@ -109,18 +180,11 @@ def _chart_data(df: pd.DataFrame, feature: str, target: str, task: str) -> dict:
 
 
 def analyze(df: pd.DataFrame, target: str) -> dict:
-    if target not in df.columns:
-        raise ValueError(f"Колонка-таргет {target!r} не найдена в таблице")
-
-    df = prepare(df)
-    y = df[target]
-    x = usable_features(df.drop(columns=[target]))
-    if x.shape[1] == 0:
-        raise ValueError("В таблице нет пригодных признаков для анализа")
-
-    task = detect_task(y)
-    numerical, categorical = split_features(x)
-    best_feature, feature_scores = find_best_feature(x, y, task, numerical, categorical)
+    data = _dataset(df, target)
+    frame, x, y, task = data["frame"], data["x"], data["y"], data["task"]
+    best_feature, feature_scores = find_best_feature(
+        x, y, task, data["numerical"], data["categorical"], data["folds"]
+    )
 
     return {
         "task": task,
@@ -129,8 +193,9 @@ def analyze(df: pd.DataFrame, target: str) -> dict:
         "best_score": round(feature_scores[best_feature], 4),
         "score_metric": "R2" if task == "regression" else "F1 (weighted)",
         "feature_scores": dict(sorted(feature_scores.items(), key=lambda kv: kv[1], reverse=True)),
-        "chart": _chart_data(df, best_feature, target, task),
+        "chart": _chart_data(frame, best_feature, target, task),
         "features": feature_spec(x),
+        "cleanup": data["notes"],
     }
 
 
@@ -140,31 +205,27 @@ def feature_spec(x: pd.DataFrame) -> list[dict]:
         if pd.api.types.is_numeric_dtype(x[col]):
             spec.append({"name": col, "type": "number"})
         else:
-            options = sorted(x[col].dropna().astype(str).unique().tolist())
+            options = sorted(x[col].dropna().astype(str).unique().tolist(), key=str)
             spec.append({"name": col, "type": "category", "options": options})
     return spec
 
 
 def train_model(df: pd.DataFrame, target: str):
-    df = prepare(df)
-    y = df[target]
-    x = usable_features(df.drop(columns=[target]))
-    task = detect_task(y)
-    numerical, categorical = split_features(x)
-    prep = build_preprocessor(numerical, categorical)
+    data = _dataset(df, target)
+    prep = build_preprocessor(data["numerical"], data["categorical"])
+    task = data["task"]
     model = LinearRegression() if task == "regression" else LogisticRegression(max_iter=1000)
     pipe = Pipeline([("prep", prep), ("model", model)])
-    pipe.fit(x, y)
-    return pipe, task, x.columns.tolist()
+    pipe.fit(data["x"], data["y"])
+    return pipe, task, data["x"].columns.tolist(), data["x"]
 
 
 def predict_value(df: pd.DataFrame, target: str, values: dict) -> dict:
-    df = prepare(df)
-    pipe, task, columns = train_model(df, target)
+    pipe, task, columns, x = train_model(df, target)
     row = {}
     for col in columns:
         raw = values.get(col)
-        if pd.api.types.is_numeric_dtype(df[col]):
+        if pd.api.types.is_numeric_dtype(x[col]):
             row[col] = float(raw) if raw not in (None, "") else None
         else:
             row[col] = raw
