@@ -143,3 +143,33 @@ def test_predict_returns_value(client, seed_dir: Path):
 
     assert response.status_code == 200
     assert response.json()["target"] == "Species"
+
+
+def test_seeder_removes_datasets_that_left_the_catalog(client):
+    import db
+
+    with db.Session(db.engine) as session:
+        session.add(
+            db.Dataset(
+                slug="retired",
+                title_en="Retired",
+                title_ru="Удалённый",
+                target="x",
+                task="regression",
+                source_name="",
+                source_url="",
+                why_en="gone",
+                why_ru="удалён",
+                rows=1,
+                cols=1,
+                csv="x\n1\n",
+            )
+        )
+        session.commit()
+
+    assert db.count_datasets() == CATALOG_SIZE + 1
+
+    db.seed_datasets()
+
+    assert db.count_datasets() == CATALOG_SIZE
+    assert db.get_dataset("retired") is None
