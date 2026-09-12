@@ -1,100 +1,182 @@
 [
   {
+    "slug": "iris",
+    "file": "iris.csv",
+    "target": "Species",
+    "task": "classification",
+    "source": {
+      "name": "Kaggle · uciml/iris",
+      "url": "https://www.kaggle.com/datasets/uciml/iris"
+    },
+    "title": {
+      "en": "Iris flowers",
+      "ru": "Ирисы Фишера"
+    },
+    "why": {
+      "en": "The baseline to start from: 150 rows, four measurements, three species, F1 around 0.96 on petal width alone. The only dirt here is the Id column, a row counter that correlates with nothing — the service drops it before the analysis.",
+      "ru": "Эталон, с которого стоит начинать: 150 строк, четыре измерения, три вида, F1 около 0.96 по одной ширине лепестка. Единственный мусор — колонка Id, порядковый номер строки, который ни с чем не связан: сервис выбрасывает её до анализа."
+    }
+  },
+  {
     "slug": "students",
-    "file": "students.csv",
-    "target": "exam_score",
+    "file": "students_performance.csv",
+    "target": "math score",
     "task": "regression",
+    "source": {
+      "name": "Kaggle · spscientist/students-performance-in-exams",
+      "url": "https://www.kaggle.com/datasets/spscientist/students-performance-in-exams"
+    },
     "title": {
-      "en": "Students and exams",
-      "ru": "Студенты и экзамен"
+      "en": "Students performance in exams",
+      "ru": "Успеваемость студентов"
     },
     "why": {
-      "en": "The baseline to start from. A clean linear relationship with no traps: study hours score around 0.84 R2, every other feature is clearly weaker. If the service gets this one wrong, the problem is in the service, not in the data.",
-      "ru": "Эталон, с которого стоит начинать. Честная линейная связь без подвохов: часы подготовки дают R2 около 0.84, остальные признаки заметно слабее. Если сервис врёт даже здесь, дело в сервисе, а не в данных."
+      "en": "Honest regression without traps: the reading score gives R2 around 0.66, writing is right behind it, every social feature is far weaker. Handy for seeing that the ranking of features says more than the top value alone.",
+      "ru": "Честная регрессия без подвохов: балл за чтение даёт R2 около 0.66, письмо идёт следом, а все социальные признаки заметно слабее. Удобно посмотреть, что важен не столько лучший балл, сколько порядок признаков."
     }
   },
   {
-    "slug": "startups",
-    "file": "startups.csv",
-    "target": "Profit",
-    "task": "regression",
-    "title": {
-      "en": "Startup profit",
-      "ru": "Прибыль стартапов"
-    },
-    "why": {
-      "en": "A cross-validation trap. R&D spend correlates with profit almost perfectly, yet the score comes out negative: there are only 50 rows and the file is sorted by profit, so folds split without shuffling land in different target ranges and the model is forced to extrapolate. The junk index column Unnamed: 0 is visible here too.",
-      "ru": "Ловушка кросс-валидации. Расходы на R&D коррелируют с прибылью почти идеально, но score выходит отрицательным: строк всего 50, и файл отсортирован по прибыли, поэтому фолды при разбиении без перемешивания попадают в разные диапазоны таргета и модель вынуждена экстраполировать. Заодно виден мусорный столбец-индекс Unnamed: 0."
-    }
-  },
-  {
-    "slug": "passengers",
-    "file": "passengers.csv",
-    "target": "survived",
+    "slug": "titanic",
+    "file": "titanic.csv",
+    "target": "Survived",
     "task": "classification",
+    "source": {
+      "name": "Kaggle · yasserh/titanic-dataset",
+      "url": "https://www.kaggle.com/datasets/yasserh/titanic-dataset"
+    },
     "title": {
-      "en": "Passengers: who survived",
-      "ru": "Пассажиры: кто выжил"
+      "en": "Titanic: who survived",
+      "ru": "Титаник: кто выжил"
     },
     "why": {
-      "en": "A categorical feature beats every numeric one: sex scores about 0.76 F1 against 0.48 for age. This is exactly why the pipeline does one-hot encoding — without it the text column would have to be thrown away.",
-      "ru": "Категориальный признак (пол) предсказывает лучше всех числовых: F1 около 0.76 против 0.48 у возраста. Ровно ради таких случаев в пайплайне стоит one-hot кодирование, без него текстовую колонку пришлось бы выбросить."
+      "en": "The classic, and a pile of dirt at the same time: PassengerId is a row key, Cabin is 77% empty, Name and Ticket are unique text. The service throws out the key, ignores the columns it cannot use and still finds Sex with F1 around 0.78. Take Age as the target and you get the second trap: 177 rows have no value at all.",
+      "ru": "Классика и одновременно куча грязи: PassengerId — ключ строки, Cabin пуст на 77%, Name и Ticket — уникальный текст. Сервис выбрасывает ключ, не берёт в работу бесполезные колонки и всё равно находит пол с F1 около 0.78. Возьми таргетом Age — получишь вторую ловушку: у 177 строк там вообще нет значения."
     }
   },
   {
-    "slug": "houses",
-    "file": "houses.csv",
-    "target": "price_k",
+    "slug": "insurance",
+    "file": "insurance.csv",
+    "target": "charges",
     "task": "regression",
+    "source": {
+      "name": "Kaggle · mirichoi0218/insurance",
+      "url": "https://www.kaggle.com/datasets/mirichoi0218/insurance"
+    },
     "title": {
-      "en": "Apartment prices",
-      "ru": "Цены на квартиры"
+      "en": "Medical insurance charges",
+      "ru": "Стоимость медицинской страховки"
     },
     "why": {
-      "en": "Numeric and categorical features mixed in one task. Floor area carries most of the signal (R2 around 0.59), the district is noticeably weaker but not useless. A good reminder that the best feature is not the same thing as the only useful feature.",
-      "ru": "Смесь числовых и категориальных признаков. Площадь даёт основной вклад (R2 около 0.59), район заметно слабее, но не бесполезен. Хороший пример того, что «лучший признак» не равно «единственный нужный признак»."
+      "en": "A categorical feature beats every number: smoker gives R2 around 0.62, age gives 0.09, bmi 0.04. Exactly the case one-hot encoding exists for — without it the strongest column would be dropped as text.",
+      "ru": "Категориальный признак обыгрывает все числа: курение даёт R2 около 0.62, возраст — 0.09, индекс массы тела — 0.04. Ровно ради таких случаев в пайплайне стоит one-hot: без него самая сильная колонка вылетела бы как текст."
     }
   },
   {
-    "slug": "churn",
-    "file": "churn.csv",
-    "target": "is_churn",
+    "slug": "telco",
+    "file": "telco_churn.csv",
+    "target": "Churn",
     "task": "classification",
+    "source": {
+      "name": "Kaggle · blastchar/telco-customer-churn",
+      "url": "https://www.kaggle.com/datasets/blastchar/telco-customer-churn"
+    },
     "title": {
-      "en": "Customer churn",
-      "ru": "Отток клиентов"
+      "en": "Telecom customer churn",
+      "ru": "Отток клиентов телекома"
     },
     "why": {
-      "en": "Imbalanced classes: roughly one customer in five churns. Look at the feature list — they all score about the same, around 0.65. That does not make them equally useful: the model simply answers \"stayed\" almost every time and collects the metric on that. A classic reason not to trust a single number.",
-      "ru": "Несбалансированные классы: ушедших примерно каждый пятый. Смотри на список признаков — у всех score почти одинаковый, около 0.65. Это не значит, что все они одинаково полезны: модель просто почти всегда отвечает «остался» и на этом набирает метрику. Классический повод не верить одной цифре."
+      "en": "The most famous trap of this dataset: TotalCharges looks numeric but is stored as text, and for a handful of customers the value is a single space. Pandas reads the whole column as a string, and before the cleanup step it was dropped as a category with thousands of values. Now the text is parsed back into a number, and tenure wins with F1 around 0.72.",
+      "ru": "Самая известная ловушка этого датасета: TotalCharges выглядит числом, но хранится текстом, и у части клиентов там один пробел. Pandas читает всю колонку как строку, и до шага очистки она выбрасывалась как категория с тысячами значений. Теперь текст распознаётся как число, а лучшим признаком выходит срок обслуживания с F1 около 0.72."
     }
   },
   {
-    "slug": "leaky_sales",
-    "file": "leaky_sales.csv",
-    "target": "revenue",
+    "slug": "housing",
+    "file": "california_housing.csv",
+    "target": "median_house_value",
     "task": "regression",
+    "source": {
+      "name": "Kaggle · camnugent/california-housing-prices",
+      "url": "https://www.kaggle.com/datasets/camnugent/california-housing-prices"
+    },
     "title": {
-      "en": "Sales with target leakage",
-      "ru": "Продажи с утечкой таргета"
+      "en": "California housing prices",
+      "ru": "Цены на жильё в Калифорнии"
     },
     "why": {
-      "en": "A trap worth learning to recognise. The total_with_vat column is the target itself multiplied by 1.2, and it scores exactly 1.00. A perfect result almost always means leakage rather than a brilliant model.",
-      "ru": "Ловушка, которую важно уметь узнавать. Колонка total_with_vat — это сам таргет, умноженный на 1.2, и score по ней ровно 1.00. Идеальный результат почти всегда означает не гениальную модель, а утечку ответа в признаки."
+      "en": "Real gaps in the data: total_bedrooms is empty in about 1% of the rows. The median imputer fills them in, median income takes the lead with R2 around 0.40, and the coordinates score below zero — a linear model gets nothing useful out of latitude on its own.",
+      "ru": "Настоящие пропуски: в total_bedrooms пусто примерно у 1% строк. Импьютер подставляет медиану, средний доход выходит вперёд с R2 около 0.40, а координаты дают отрицательный score — линейная модель не умеет извлечь пользу из одной широты."
     }
   },
   {
-    "slug": "noise",
-    "file": "noise.csv",
-    "target": "target",
-    "task": "regression",
+    "slug": "wine",
+    "file": "wine_quality.csv",
+    "target": "quality",
+    "task": "classification",
+    "source": {
+      "name": "Kaggle · uciml/red-wine-quality-cortez-et-al-2009",
+      "url": "https://www.kaggle.com/datasets/uciml/red-wine-quality-cortez-et-al-2009"
+    },
     "title": {
-      "en": "Pure noise",
-      "ru": "Чистый шум"
+      "en": "Red wine quality",
+      "ru": "Качество красного вина"
     },
     "why": {
-      "en": "The sanity check in reverse: there is no relationship in this data at all. Every score hovers around zero or below, which is the correct behaviour. A service that finds an important feature with a high score in noise is lying to you.",
-      "ru": "Обратная проверка: связи в данных нет вообще. Все score болтаются около нуля и ниже — это правильное поведение. Сервис, который и на шуме находит «важный признак» с высоким score, обманывает."
+      "en": "A numeric target that is not a regression: quality takes six integer values, so the service switches to classification. The classes are badly unbalanced — the rarest grades have a handful of bottles — and the number of cross-validation folds is reduced to the size of the smallest class instead of the run crashing.",
+      "ru": "Числовой таргет, который не является регрессией: оценка принимает шесть целых значений, поэтому сервис переключается на классификацию. Классы сильно несбалансированы — у самых редких оценок по несколько бутылок, — и число фолдов кросс-валидации подстраивается под самый маленький класс вместо падения."
+    }
+  },
+  {
+    "slug": "avocado",
+    "file": "avocado.csv",
+    "target": "AveragePrice",
+    "task": "regression",
+    "source": {
+      "name": "Kaggle · neuromusic/avocado-prices",
+      "url": "https://www.kaggle.com/datasets/neuromusic/avocado-prices"
+    },
+    "title": {
+      "en": "Avocado prices",
+      "ru": "Цены на авокадо"
+    },
+    "why": {
+      "en": "Two problems in one file. A Date column, which used to be dropped as a category with hundreds of values and is now split into year and month; and a junk index column left behind by to_csv. On top of that the rows are sorted by region and date, so cross-validation without shuffling gives a negative R2 — shuffle the same file and the avocado type jumps to about 0.36.",
+      "ru": "Две проблемы в одном файле. Колонка Date, которая раньше выбрасывалась как категория с сотнями значений, а теперь разбирается на год и месяц; и мусорный столбец-индекс от to_csv. Вдобавок строки отсортированы по региону и дате, поэтому кросс-валидация без перемешивания даёт отрицательный R2 — если тот же файл перемешать, тип авокадо выходит примерно на 0.36."
+    }
+  },
+  {
+    "slug": "netflix",
+    "file": "netflix_titles.csv",
+    "target": "type",
+    "task": "classification",
+    "source": {
+      "name": "Kaggle · shivamb/netflix-shows",
+      "url": "https://www.kaggle.com/datasets/shivamb/netflix-shows"
+    },
+    "title": {
+      "en": "Netflix catalogue",
+      "ru": "Каталог Netflix"
+    },
+    "why": {
+      "en": "The dirtiest file of the catalogue. Dates are written out in words (September 25, 2021), duration mixes minutes and seasons in one column, director, cast and description are long unique strings. Try rating as a target as well: it has empty values and one-off categories, which used to break the run outright.",
+      "ru": "Самый грязный файл каталога. Даты записаны словами (September 25, 2021), в duration в одной колонке лежат и минуты, и сезоны, а режиссёр, актёры и описание — длинные уникальные строки. Попробуй взять таргетом ещё и rating: там есть пропуски и категории-одиночки, на которых анализ раньше падал с ошибкой."
+    }
+  },
+  {
+    "slug": "cars",
+    "file": "car_details.csv",
+    "target": "selling_price",
+    "task": "regression",
+    "source": {
+      "name": "Kaggle · nehalbirla/vehicle-dataset-from-cardekho",
+      "url": "https://www.kaggle.com/datasets/nehalbirla/vehicle-dataset-from-cardekho"
+    },
+    "title": {
+      "en": "Used cars from CarDekho",
+      "ru": "Подержанные машины CarDekho"
+    },
+    "why": {
+      "en": "Numbers stored together with their units: 23.4 kmpl, 1248 CC, 74 bhp. All four such columns used to be thrown away as text with too many values, and the best feature came out as transmission with R2 around 0.29. Once the units are stripped, engine power wins with about 0.50.",
+      "ru": "Числа записаны вместе с единицами измерения: 23.4 kmpl, 1248 CC, 74 bhp. Все четыре такие колонки раньше выбрасывались как текст с большим числом значений, и лучшим признаком выходила коробка передач с R2 около 0.29. После отделения единиц побеждает мощность двигателя с результатом около 0.50."
     }
   }
 ]

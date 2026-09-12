@@ -1,42 +1,38 @@
 import pandas as pd
 import pytest
 
-from core import analyze, detect_task, predict_value, prepare, usable_features
+from cleaning import clean_frame
+from core import analyze, cv_folds, detect_task, predict_value, prepare, usable_features
 
 
-def test_detects_regression_and_finds_obvious_driver(students: pd.DataFrame):
-    result = analyze(students, "exam_score")
-
-    assert result["task"] == "regression"
-    assert result["score_metric"] == "R2"
-    assert result["best_feature"] == "hours_studied"
-    assert result["best_score"] > 0.7
-
-
-def test_detects_classification_on_binary_target(passengers: pd.DataFrame):
-    result = analyze(passengers, "survived")
+def test_detects_classification_on_iris(iris: pd.DataFrame):
+    result = analyze(iris, "Species")
 
     assert result["task"] == "classification"
     assert result["score_metric"] == "F1 (weighted)"
-    assert result["best_feature"] == "sex"
+    assert result["best_feature"] == "PetalWidthCm"
+    assert result["best_score"] > 0.9
 
 
-def test_reports_no_signal_on_pure_noise(noise: pd.DataFrame):
-    result = analyze(noise, "target")
+def test_detects_regression_and_finds_obvious_driver(students: pd.DataFrame):
+    result = analyze(students, "math score")
 
-    assert result["best_score"] < 0.2
-
-
-def test_perfect_score_on_leaked_target(leaky: pd.DataFrame):
-    result = analyze(leaky, "revenue")
-
-    assert result["best_feature"] == "total_with_vat"
-    assert result["best_score"] > 0.99
+    assert result["task"] == "regression"
+    assert result["score_metric"] == "R2"
+    assert result["best_feature"] == "reading score"
+    assert result["best_score"] > 0.6
 
 
-def test_raises_when_target_column_is_missing(students: pd.DataFrame):
+def test_categorical_feature_can_win(titanic: pd.DataFrame):
+    result = analyze(titanic, "Survived")
+
+    assert result["task"] == "classification"
+    assert result["best_feature"] == "Sex"
+
+
+def test_raises_when_target_column_is_missing(iris: pd.DataFrame):
     with pytest.raises(ValueError, match="таргет"):
-        analyze(students, "no_such_column")
+        analyze(iris, "no_such_column")
 
 
 def test_raises_when_no_usable_features():
@@ -46,19 +42,13 @@ def test_raises_when_no_usable_features():
         analyze(df, "target")
 
 
-def test_every_feature_gets_a_score(students: pd.DataFrame):
-    result = analyze(students, "exam_score")
-
-    assert set(result["feature_scores"]) == set(students.columns) - {"exam_score"}
-
-
 def test_chart_matches_best_feature(students: pd.DataFrame):
-    result = analyze(students, "exam_score")
+    result = analyze(students, "math score")
     chart = result["chart"]
 
     assert chart["type"] == "scatter"
     assert chart["x_label"] == result["best_feature"]
-    assert chart["y_label"] == "exam_score"
+    assert chart["y_label"] == "math score"
     assert len(chart["x"]) == len(chart["y"])
 
 
@@ -90,14 +80,106 @@ def test_usable_features_drops_constant_columns():
 
 def test_prediction_returns_number_for_regression(students: pd.DataFrame):
     values = {
-        "hours_studied": "8",
-        "sleep_hours": "7",
-        "attendance_pct": "90",
-        "prev_score": "70",
+        "reading score": "70",
+        "writing score": "70",
+        "gender": "female",
+        "race/ethnicity": "group B",
+        "parental level of education": "some college",
+        "lunch": "standard",
+        "test preparation course": "none",
     }
 
-    result = predict_value(students, "exam_score", values)
+    result = predict_value(students, "math score", values)
 
     assert result["task"] == "regression"
-    assert result["target"] == "exam_score"
+    assert result["target"] == "math score"
     assert isinstance(result["prediction"], (int, float))
+
+
+# --- подготовка сырых данных с Kaggle -------------------------------------------------
+
+
+def test_row_identifier_is_dropped(titanic: pd.DataFrame):
+    frame, notes = clean_frame(titanic, protect="Survived")
+
+    assert "PassengerId" not in frame.columns
+    assert {"column": "PassengerId", "action": "id_column", "detail": ""} in notes
+
+
+def test_index_column_from_to_csv_is_dropped(avocado: pd.DataFrame):
+    frame, _ = clean_frame(avocado, protect="AveragePrice")
+
+    assert not [col for col in frame.columns if col.lower().startswith("unnamed")]
+
+
+def test_date_column_becomes_numeric_parts(avocado: pd.DataFrame):
+    frame, notes = clean_frame(avocado, protect="AveragePrice")
+
+    assert "Date" not in frame.columns
+    assert "Date_year" in frame.columns
+    assert "Date_month" in frame.columns
+    assert pd.api.types.is_numeric_dtype(frame["Date_year"])
+    assert any(n["column"] == "Date" and n["action"] == "date_split" for n in notes)
+
+
+def test_text_date_written_in_words_is_parsed(netflix: pd.DataFrame):
+    frame, _ = clean_frame(netflix, protect="type")
+
+    assert "date_added_year" in frame.columns
+    assert frame["date_added_year"].dropna().between(2000, 2030).all()
+
+
+def test_number_stored_as_text_is_recovered(telco: pd.DataFrame):
+    frame, notes = clean_frame(telco, protect="Churn")
+
+    assert pd.api.types.is_numeric_dtype(frame["TotalCharges"])
+    assert any(n["column"] == "TotalCharges" and n["action"] == "text_number" for n in notes)
+
+
+def test_units_are_stripped_from_numbers(cars: pd.DataFrame):
+    frame, _ = clean_frame(cars, protect="selling_price")
+
+    assert pd.api.types.is_numeric_dtype(frame["mileage"])
+    assert pd.api.types.is_numeric_dtype(frame["engine"])
+    assert frame["engine"].max() > 600
+
+
+def test_codes_are_not_mistaken_for_numbers(titanic: pd.DataFrame):
+    frame, _ = clean_frame(titanic, protect="Survived")
+
+    assert not pd.api.types.is_numeric_dtype(frame["Ticket"])
+
+
+def test_target_column_is_never_touched(telco: pd.DataFrame):
+    frame, _ = clean_frame(telco, protect="TotalCharges")
+
+    assert not pd.api.types.is_numeric_dtype(frame["TotalCharges"])
+
+
+def test_analysis_survives_missing_target_values(titanic: pd.DataFrame):
+    result = analyze(titanic, "Age")
+
+    assert result["task"] == "regression"
+    gaps = [n for n in result["cleanup"] if n["action"] == "target_gaps"]
+    assert gaps and gaps[0]["column"] == "Age" and int(gaps[0]["detail"]) == 177
+
+
+def test_analysis_survives_rare_classes_and_gaps(netflix: pd.DataFrame):
+    result = analyze(netflix, "rating")
+
+    assert result["task"] == "classification"
+    assert result["best_feature"] in result["feature_scores"]
+
+
+def test_cleanup_report_is_returned_to_the_client(cars: pd.DataFrame):
+    result = analyze(cars, "selling_price")
+
+    assert any(n["column"] == "mileage" and n["action"] == "text_number" for n in result["cleanup"])
+    assert result["best_feature"] == "max_power"
+
+
+def test_folds_shrink_to_the_smallest_class():
+    y = pd.Series(["a"] * 50 + ["b"] * 3)
+
+    assert cv_folds(y, "classification") == 3
+    assert cv_folds(y, "regression") == 5

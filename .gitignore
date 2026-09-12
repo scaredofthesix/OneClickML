@@ -220,6 +220,9 @@ __marimo__/
 uploads/
 *.joblib
 
+# Локальная база, которую бэкенд создаёт без DATABASE_URL
+backend/oneclickml.db
+
 # Local tooling and editor
 .claude/
 .idea/

@@ -358,6 +358,35 @@ select:disabled { color: var(--muted); }
   color: var(--muted);
 }
 
+.ds__source {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--muted);
+  align-self: flex-start;
+}
+.ds__source:hover { color: var(--ink); border-bottom-color: var(--ink); }
+
+.cleanup {
+  border: 1px dashed var(--line);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+.cleanup__head {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+.cleanup__list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
 .foot {
   display: flex;
   justify-content: space-between;
