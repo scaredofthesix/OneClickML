@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy import DateTime, Float, Integer, String, Text, create_engine, delete, func, select
@@ -55,7 +55,7 @@ class Run(Base):
     __tablename__ = "runs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
     filename: Mapped[str] = mapped_column(String(255))
     target: Mapped[str] = mapped_column(String(255))
     task: Mapped[str] = mapped_column(String(32))

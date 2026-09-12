@@ -37,7 +37,7 @@ def _read_csv(raw: bytes) -> pd.DataFrame:
             last_error = exc
             continue
         except Exception as exc:
-            raise HTTPException(status_code=400, detail=f"Не удалось прочитать CSV: {exc}")
+            raise HTTPException(status_code=400, detail=f"Не удалось прочитать CSV: {exc}") from exc
     raise HTTPException(status_code=400, detail=f"Не удалось определить кодировку файла: {last_error}")
 
 
@@ -60,9 +60,9 @@ async def api_analyze(file: UploadFile = File(...), target: str = Form(...)) -> 
     try:
         result = analyze(df, target)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Ошибка анализа: {exc}")
+        raise HTTPException(status_code=500, detail=f"Ошибка анализа: {exc}") from exc
 
     try:
         db.save_run(
@@ -92,9 +92,9 @@ async def api_predict(
         parsed = json.loads(values)
         result = predict_value(df, target, parsed)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Ошибка предсказания: {exc}")
+        raise HTTPException(status_code=500, detail=f"Ошибка предсказания: {exc}") from exc
     return JSONResponse(result)
 
 
