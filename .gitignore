@@ -220,8 +220,8 @@ __marimo__/
 uploads/
 *.joblib
 
-# Локальная база, которую бэкенд создаёт без DATABASE_URL
-backend/oneclickml.db
+# Локальные базы SQLite: бэкенд без DATABASE_URL и прогон тестов
+backend/*.db
 
 # Local tooling and editor
 .claude/
