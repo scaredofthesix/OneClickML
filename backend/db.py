@@ -135,6 +135,7 @@ def seed_datasets() -> int:
 
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     touched = 0
+    seeded: set[str] = set()
     with Session(engine) as session:
         existing = {row.slug: row for row in session.scalars(select(Dataset)).all()}
         for item in catalog:
@@ -163,7 +164,14 @@ def seed_datasets() -> int:
             else:
                 for key, value in fields.items():
                     setattr(row, key, value)
+            seeded.add(item["slug"])
             touched += 1
+
+        # Каталог -- источник правды: датасет, которого в нём больше нет, не должен
+        # оставаться в базе. Иначе удалённые файлы живут в томе до docker compose down -v.
+        for slug, row in existing.items():
+            if slug not in seeded:
+                session.delete(row)
         session.commit()
     return touched
 
